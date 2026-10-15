@@ -51,5 +51,27 @@ module.exports=[
 {command:"readreceipts",category:"owner",owner:!0,execute:async(s,m,{args:a,reply:r})=>{H(s,m,r(a[0]?.toLowerCase()==='on'?"Read receipts enabled":"Read receipts disabled"))}},
 {command:"save",category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{if(!m.quoted)return H(s,m,r("❌ Reply to a message to save."));let msg=m.quoted.text||(m.quoted.message?.conversation)||(m.quoted.message?.extendedTextMessage?.text)||"[Media]";if(!global._savedMessages)global._savedMessages=[];global._savedMessages.push(msg);H(s,m,r(`✅ Saved! Total: ${global._savedMessages.length}`))}},
 {command:"delete",aliases:["del"],category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{if(!m.quoted)return H(s,m,r("❌ Reply to a message to delete."));if(!m.isBotAdmin&&!m.isAdmin)return H(s,m,r("❌ I need admin powers."));try{await s.sendMessage(m.chat,{delete:m.quoted.key});H(s,m,r("🗑️ Deleted."))}catch{H(s,m,r("❌ Failed"))}}},
-{command:"getpp",aliases:["pp","dp","profilepic"],category:"general",execute:async(s,m,{args:a,reply:r})=>{try{let t;if(m.quoted){t=m.quoted.sender||m.quoted.participant||m.quoted.key?.participant}else if(m.mentionedJid&&m.mentionedJid.length>0){t=m.mentionedJid[0]}else if(a[0]){let n=a[0].replace(/[^0-9]/g,'');if(n.length<10)return H(s,m,r('❌ Invalid number'));t=n+'@s.whatsapp.net'}else{t=m.sender}t=t.split(':')[0].split('@')[0]+'@s.whatsapp.net';console.log('🔍 getpp target:',t);const pp=await s.profilePictureUrl(t,'image').catch(()=>null);if(!pp)return H(s,m,r('❌ No profile picture found or it\'s private.'));const buf=Buffer.from((await require('axios').get(pp,{responseType:'arraybuffer'})).data);await s.sendMessage(m.chat,{image:buf,caption:`📸 Profile picture of @${t.split('@')[0]}`,mentions:[t]},{quoted:m})}catch(e){console.log('getpp err:',e.message);H(s,m,r('❌ Failed to fetch profile picture.'))}}}
+{command:"getpp",aliases:["pp","dp","profilepic"],category:"general",execute:async(s,m,{args:a,reply:r})=>{
+  try{
+    let t;
+    if(m.quoted){
+      t=m.quoted.sender||m.quoted.participant||m.quoted.key?.participant;
+    } else if(m.mentionedJid&&m.mentionedJid.length>0){
+      t=m.mentionedJid[0];
+    } else if(a[0]){
+      let n=a[0].replace(/[^0-9]/g,'');
+      if(n.length<10)return r('❌ Invalid number');
+      t=n+'@s.whatsapp.net';
+    } else {
+      t=m.sender||m.chat;
+    }
+    if(!t)return r('❌ Could not resolve target.');
+    t=t.split(':')[0].split('@')[0]+'@s.whatsapp.net';
+    console.log('🔍 getpp target:',t);
+    const pp=await s.profilePictureUrl(t,'image').catch(()=>null);
+    if(!pp)return r('❌ No profile picture found or it\'s private.');
+    const buf=Buffer.from((await require('axios').get(pp,{responseType:'arraybuffer'})).data);
+    await s.sendMessage(m.chat,{image:buf,caption:`📸 Profile picture of @${t.split('@')[0]}`,mentions:[t]},{quoted:m});
+  }catch(e){console.log('getpp err:',e.message);r('❌ Failed to fetch profile picture.')}
+}}
 ];
