@@ -54,17 +54,11 @@ module.exports=[
 {command:"getpp",aliases:["pp","dp","profilepic"],category:"general",execute:async(s,m,{args:a,reply:r})=>{
   try{
     let t;
-    if(m.quoted){
-      t=m.quoted.sender||m.quoted.participant||m.quoted.key?.participant;
-    } else if(m.mentionedJid&&m.mentionedJid.length>0){
-      t=m.mentionedJid[0];
-    } else if(a[0]){
-      let n=a[0].replace(/[^0-9]/g,'');
-      if(n.length<10)return r('❌ Invalid number');
-      t=n+'@s.whatsapp.net';
-    } else {
-      t=m.sender||m.chat;
-    }
+    if(m.mentionedJid&&m.mentionedJid.length>0)t=m.mentionedJid[0];
+    else if(m.quoted)t=m.quoted.sender||m.quoted.participant||m.quoted.key?.participant;
+    else if(a[0]){let n=a[0].replace(/[^0-9]/g,'');if(n.length<10)return r('❌ Invalid number');t=n+'@s.whatsapp.net';}
+    else if(!m.isGroup)t=m.chat;
+    else return r('📸 *How to use .getpp*\n\n• Reply to a message + .getpp\n• .getpp @user\n• .getpp 263786641436\n• In private DM: just .getpp');
     if(!t)return r('❌ Could not resolve target.');
     t=t.split(':')[0].split('@')[0]+'@s.whatsapp.net';
     console.log('🔍 getpp target:',t);
