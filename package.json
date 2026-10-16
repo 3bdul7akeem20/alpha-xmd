@@ -18,6 +18,7 @@
     "axios": "^1.6.8",
     "chalk": "^4.1.2",
     "crypto-js": "^4.2.0",
+    "express": "^4.19.2",
     "file-type": "^18.7.0",
     "fluent-ffmpeg": "^2.1.2",
     "form-data": "^4.0.0",
