@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha-XMD | Get Your Bot</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-align: center; max-width: 400px; width: 90%; }
+        h1 { color: #33ff00; margin-bottom: 10px; }
+        p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #334155; border-radius: 8px; background: #0f172a; color: #fff; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #33ff00; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #2bd600; }
+        #result { margin-top: 20px; font-size: 18px; font-weight: bold; display: none; }
+        .code-box { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px dashed #33ff00; margin-top: 10px; font-size: 24px; letter-spacing: 2px; color: #33ff00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ALPHA-XMD BOT</h1>
+        <p>Enter your WhatsApp number to get a pairing code and activate your bot.</p>
+        <input type="tel" id="number" placeholder="e.g., 263784969735" required>
+        <button onclick="getCode()" id="btn">Get Pairing Code</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function getCode() {
+            const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
+            const btn = document.getElementById('btn');
+            const result = document.getElementById('result');
+
+            if (number.length < 10) {
+                alert('Please enter a valid WhatsApp number with country code.');
+                return;
+            }
+
+            btn.innerText = 'Generating...';
+            btn.disabled = true;
+            result.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/pair', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber: number })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    result.style.display = 'block';
+                    if (data.alreadyPaired) {
+                        result.innerHTML = `<p style="color:#33ff00">✅ Bot is already running for this number!</p>`;
+                    } else {
+                        result.innerHTML = `
+                            <p style="color:#33ff00">✅ Code Generated!</p>
+                            <div class="code-box">${data.code}</div>
+                            <p style="font-size:12px; margin-top:10px;">Open WhatsApp > Linked Devices > Link with phone number</p>
+                        `;
+                    }
+                } else {
+                    result.style.display = 'block';
+                    result.innerHTML = `<p style="color:#ff4444">❌ ${data.error}</p>`;
+                }
+            } catch (err) {
+                result.style.display = 'block';
+                result.innerHTML = `<p style="color:#ff4444">❌ Network error. Try again.</p>`;
+            }
+
+            btn.innerText = 'Get Pairing Code';
+            btn.disabled = false;
+        }
+    </script>
+</body>
+</html>
