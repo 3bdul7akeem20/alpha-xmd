@@ -3,74 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alpha-XMD | Get Your Bot</title>
+    <title>Alpha-XMD | Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-align: center; max-width: 400px; width: 90%; }
-        h1 { color: #33ff00; margin-bottom: 10px; }
-        p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #334155; border-radius: 8px; background: #0f172a; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #33ff00; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #2bd600; }
-        #result { margin-top: 20px; font-size: 18px; font-weight: bold; display: none; }
-        .code-box { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px dashed #33ff00; margin-top: 10px; font-size: 24px; letter-spacing: 2px; color: #33ff00; }
+        :root {
+            --primary: #c026d3;
+            --bg: #fdf4ff;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+        }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { 
+            background: linear-gradient(135deg, #fdf4ff 0%, #f3e8ff 100%); 
+            color: var(--text); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { width: 100%; max-width: 420px; text-align: center; }
+        .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 5px; color: #111827; }
+        .header p { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        
+        .card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(192, 38, 211, 0.1); 
+            border: 1px solid rgba(192, 38, 211, 0.2);
+            text-align: left;
+        }
+        
+        .card-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .card-title .icon { background: #fce7f3; color: var(--primary); padding: 6px; border-radius: 8px; display: flex; }
+        
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            margin-bottom: 15px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 10px; 
+            background: #f9fafb; 
+            color: #111827; 
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.1); }
+        
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: linear-gradient(to right, #d946ef, #c026d3); 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: 600; 
+            font-size: 15px;
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #d1d5db; cursor: not-allowed; }
+
+        .status-box { margin-top: 20px; display: none; }
+        .status-connected { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 20px; text-align: center; }
+        .status-connected h3 { color: #065f46; margin: 10px 0 5px 0; font-size: 18px; }
+        .status-connected p { color: #047857; font-size: 13px; margin-bottom: 15px; }
+        
+        .code-display { 
+            background: #fdf4ff; 
+            border: 2px dashed var(--primary); 
+            color: var(--primary); 
+            font-size: 24px; 
+            font-weight: 800; 
+            letter-spacing: 2px; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin: 10px 0;
+        }
+        
+        .error-box { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; padding: 12px; border-radius: 8px; font-size: 13px; display: none; margin-top: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ALPHA-XMD BOT</h1>
-        <p>Enter your WhatsApp number to get a pairing code and activate your bot.</p>
-        <input type="tel" id="number" placeholder="e.g., 263784969735" required>
-        <button onclick="getCode()" id="btn">Get Pairing Code</button>
-        <div id="result"></div>
+        <div class="header">
+            <h1>Connect WhatsApp</h1>
+            <p>Get your pairing code in seconds.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <div class="icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                </div>
+                Pairing code
+            </div>
+
+            <div id="input-section">
+                <input type="tel" id="number" placeholder="e.g. 263784969735">
+                <button onclick="requestCode()" id="btn">
+                    Generate Pairing Code
+                </button>
+            </div>
+
+            <div id="result-section" class="status-box"></div>
+            <div class="error-box" id="error-box"></div>
+        </div>
     </div>
 
     <script>
-        async function getCode() {
+        // This is set to DEMO mode for now. 
+        // When the backend is ready, we change this to the real URL.
+        const API_URL = "DEMO"; 
+
+        async function requestCode() {
             const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
             const btn = document.getElementById('btn');
-            const result = document.getElementById('result');
+            const errBox = document.getElementById('error-box');
 
             if (number.length < 10) {
-                alert('Please enter a valid WhatsApp number with country code.');
+                showError("Please enter a valid number with country code.");
                 return;
             }
 
-            btn.innerText = 'Generating...';
+            btn.innerHTML = "Generating...";
             btn.disabled = true;
-            result.style.display = 'none';
+            errBox.style.display = 'none';
 
-            try {
-                const res = await fetch('/api/pair', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phoneNumber: number })
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    result.style.display = 'block';
-                    if (data.alreadyPaired) {
-                        result.innerHTML = `<p style="color:#33ff00">✅ Bot is already running for this number!</p>`;
-                    } else {
-                        result.innerHTML = `
-                            <p style="color:#33ff00">✅ Code Generated!</p>
-                            <div class="code-box">${data.code}</div>
-                            <p style="font-size:12px; margin-top:10px;">Open WhatsApp > Linked Devices > Link with phone number</p>
-                        `;
-                    }
-                } else {
-                    result.style.display = 'block';
-                    result.innerHTML = `<p style="color:#ff4444">❌ ${data.error}</p>`;
-                }
-            } catch (err) {
-                result.style.display = 'block';
-                result.innerHTML = `<p style="color:#ff4444">❌ Network error. Try again.</p>`;
+            // FAKE DEMO MODE
+            if (API_URL === "DEMO") {
+                setTimeout(() => {
+                    document.getElementById('input-section').style.display = 'none';
+                    document.getElementById('result-section').style.display = 'block';
+                    document.getElementById('result-section').innerHTML = `
+                        <div class="status-connected">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <h3>Code Generated</h3>
+                            <p>Open WhatsApp > Linked Devices</p>
+                            <div class="code-display">ABCD-1234</div>
+                        </div>
+                    `;
+                    btn.disabled = false;
+                }, 1500);
+                return;
             }
+        }
 
-            btn.innerText = 'Get Pairing Code';
-            btn.disabled = false;
+        function showError(msg) {
+            const errBox = document.getElementById('error-box');
+            errBox.innerText = msg;
+            errBox.style.display = 'block';
         }
     </script>
 </body>
