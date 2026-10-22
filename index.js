@@ -10,7 +10,7 @@ const { smsg } = require("./library/serialize");
 const app = express();
 app.use(express.json());
 
-// Enable CORS so your Vercel website can talk to this Render/Panel API
+// Enable CORS so your Vercel website can talk to this API
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -18,7 +18,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve the website (if you put index.html inside a 'public' folder)
+// Serve the website locally if needed (though Vercel handles the public site)
 app.use(express.static(path.join(__dirname, "public")));
 
 // Ensure sessions folder exists
@@ -206,19 +206,39 @@ app.post("/api/pair", async (req, res) => {
   console.log("🚀 Starting Alpha Bot Server...");
   baileys = await import("@whiskeysockets/baileys");
   
-  // Render gives process.env.PORT, Pterodactyl uses 2047 or you can set it
   const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`🌐 Website & API running on port ${PORT}`);
-  });
-
-  // Load all saved bots on startup
-  console.log("📂 Loading saved bots...");
-  const dirs = fs.readdirSync(sessionsDir);
-  for (const dir of dirs) {
-    if (/^\d{10,15}$/.test(dir)) {
-      await startBot(dir);
+  
+  // Start the internal Express server
+  app.listen(PORT, async () => {
+    console.log(`🌐 Internal API running on port ${PORT}`);
+    
+    // 🌐 START THE PUBLIC TUNNEL
+    try {
+      const localtunnel = require('localtunnel');
+      console.log("⏳ Creating public tunnel... Please wait.");
+      
+      const tunnel = await localtunnel({ port: PORT });
+      console.log(`\n======================================================`);
+      console.log(`✅ PUBLIC API URL: ${tunnel.url}`);
+      console.log(`======================================================\n`);
+      console.log(`👉 COPY THIS URL AND PASTE IT INTO YOUR VERCEL website code (index.html)`);
+      
+      tunnel.on('close', () => {
+        console.log("❌ Tunnel closed. Restart the bot to get a new URL.");
+      });
+      
+    } catch (err) {
+      console.log("⚠️ Tunnel failed to start:", err.message);
     }
-  }
-  console.log("✅ All loaded.");
+
+    // Load all saved bots
+    console.log("📂 Loading saved bots...");
+    const dirs = fs.readdirSync(sessionsDir);
+    for (const dir of dirs) {
+      if (/^\d{10,15}$/.test(dir)) {
+        await startBot(dir);
+      }
+    }
+    console.log("✅ All loaded.");
+  });
 })();
