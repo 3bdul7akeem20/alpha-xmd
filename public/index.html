@@ -117,14 +117,15 @@
     </div>
 
     <script>
-        // This is set to DEMO mode for now. 
-        // When the backend is ready, we change this to the real URL.
-        const API_URL = "DEMO"; 
+        // ⚠️ IMPORTANT: Make sure your URL ends in .loca.lt, not .local.lt
+        // Paste the exact URL your Pterodactyl panel gave you.
+        const API_URL = "https://clean-masks-bake.loca.lt"; 
 
         async function requestCode() {
             const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
             const btn = document.getElementById('btn');
             const errBox = document.getElementById('error-box');
+            const resultSection = document.getElementById('result-section');
 
             if (number.length < 10) {
                 showError("Please enter a valid number with country code.");
@@ -134,23 +135,50 @@
             btn.innerHTML = "Generating...";
             btn.disabled = true;
             errBox.style.display = 'none';
+            resultSection.style.display = 'none';
 
-            // FAKE DEMO MODE
-            if (API_URL === "DEMO") {
-                setTimeout(() => {
+            try {
+                const res = await fetch(API_URL + "/api/pair", {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Bypass-Tunnel-Reminder': 'true' // 👈 Bypasses localtunnel warning page
+                    },
+                    body: JSON.stringify({ phoneNumber: number })
+                });
+                
+                const data = await res.json();
+
+                if (data.success) {
                     document.getElementById('input-section').style.display = 'none';
-                    document.getElementById('result-section').style.display = 'block';
-                    document.getElementById('result-section').innerHTML = `
-                        <div class="status-connected">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                            <h3>Code Generated</h3>
-                            <p>Open WhatsApp > Linked Devices</p>
-                            <div class="code-display">ABCD-1234</div>
-                        </div>
-                    `;
+                    resultSection.style.display = 'block';
+                    
+                    if (data.alreadyPaired) {
+                         resultSection.innerHTML = `
+                            <div class="status-connected">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                <h3>Already Connected</h3>
+                                <p>This bot is already running.</p>
+                            </div>
+                        `;
+                    } else {
+                        resultSection.innerHTML = `
+                            <div class="status-connected">
+                                <h3>Code Generated</h3>
+                                <p>Open WhatsApp > Linked Devices > Link with phone number</p>
+                                <div class="code-display">${data.code}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    showError(data.error || "Failed to generate code.");
+                    btn.innerHTML = "Generate Pairing Code";
                     btn.disabled = false;
-                }, 1500);
-                return;
+                }
+            } catch (err) {
+                showError("Network error. Make sure your bot is online and the URL is correct.");
+                btn.innerHTML = "Generate Pairing Code";
+                btn.disabled = false;
             }
         }
 
