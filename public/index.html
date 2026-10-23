@@ -3,264 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alpha-XMD | Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Alpha-XMD | Cloud Connect</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#09090b;--card:#121214;--hov:#18181b;--brd:#27272a;--txt:#fafafa;--mut:#a1a1aa;--pri:#6366f1;--prih:#4f46e5;--suc:#22c55e;--dng:#ef4444}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif}
-body{background:var(--bg);color:var(--txt);display:flex;height:100vh;overflow:hidden}
-/* Sidebar */
-.sb{width:260px;background:var(--card);border-right:1px solid var(--brd);display:flex;flex-direction:column;transition:.3s;z-index:100}
-.sb.cl{transform:translateX(-100%);position:absolute;height:100%}
-.br{padding:20px;display:flex;align-items:center;gap:12px;font-size:20px;font-weight:800;border-bottom:1px solid var(--brd)}
-.br img{width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid var(--brd)}
-.nm{padding:20px 12px;flex:1;display:flex;flex-direction:column;gap:6px}
-.ni{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;color:var(--mut);font-weight:500;font-size:14px;cursor:pointer;transition:.2s}
-.ni:hover,.ni.ac{background:var(--hov);color:var(--txt)}
-.ni.ac{border-left:3px solid var(--pri)}
-/* Main */
-.mc{flex:1;display:flex;flex-direction:column;overflow-y:auto;width:100%}
-.tb{height:64px;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;padding:0 24px;background:rgba(9,9,11,.8);backdrop-filter:blur(10px);position:sticky;top:0;z-index:10}
-.mb{background:none;border:none;color:var(--txt);cursor:pointer;padding:8px;border-radius:8px;display:flex}
-.mb:hover{background:var(--hov)}
-.tr{display:flex;align-items:center;gap:20px}
-.si{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--suc);background:rgba(34,197,94,.1);padding:6px 12px;border-radius:20px;border:1px solid rgba(34,197,94,.2)}
+:root{--bg:#0a0f1a;--card:#111827;--brd:#1f2937;--txt:#f9fafb;--mut:#9ca3af;--pri:#10b981;--prih:#059669;--suc:#10b981;--dng:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif}
+body{background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background-image:radial-gradient(circle at 50% -20%,rgba(16,185,129,.15),transparent 50%)}
+.wrap{width:100%;max-width:440px;display:flex;flex-direction:column;gap:24px}
+
+/* Header */
+.hd{text-align:center}
+.hd img{width:64px;height:64px;border-radius:16px;margin-bottom:16px;border:1px solid var(--brd);box-shadow:0 10px 20px rgba(0,0,0,.4)}
+.hd h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+.hd p{color:var(--mut);font-size:14px;margin-top:8px}
+
+/* Stats Bar */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+.st{background:var(--card);border:1px solid var(--brd);padding:16px;border-radius:16px;text-align:center}
+.st-t{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+.st-v{font-size:22px;font-weight:800;color:var(--pri)}
+
+/* Card */
+.crd{background:var(--card);border:1px solid var(--brd);border-radius:24px;padding:32px;box-shadow:0 20px 40px rgba(0,0,0,.4);position:relative;overflow:hidden}
+.crd::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--pri),transparent)}
+.crd h2{font-size:18px;font-weight:700;margin-bottom:24px;display:flex;align-items:center;gap:8px}
+.ig{margin-bottom:20px}
+.ig label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600}
+.ig input{width:100%;padding:16px;background:var(--bg);border:1px solid var(--brd);border-radius:12px;color:var(--txt);font-size:15px;outline:none;transition:.2s}
+.ig input:focus{border-color:var(--pri);box-shadow:0 0 15px rgba(16,185,129,.2)}
+.bt{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:10px;transition:.2s}
+.bt:hover{background:var(--prih)}
+.bt:disabled{background:#374151;color:var(--mut);cursor:not-allowed}
+.sp{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-radius:50%;border-top-color:#000;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Result Boxes */
+.res{display:none;margin-top:20px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);padding:20px;border-radius:16px;text-align:center;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.cd{font-size:36px;font-weight:800;letter-spacing:6px;color:var(--pri);margin:15px 0;text-shadow:0 0 20px rgba(16,185,129,.3)}
+.mg{display:none;margin-top:20px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);padding:20px;border-radius:16px;text-align:center}
+.bd{background:transparent;border:1px solid var(--dng);color:var(--dng);margin-top:15px;padding:12px;font-size:14px}
+.bd:hover{background:rgba(239,68,68,.1)}
+.err{display:none;color:var(--dng);font-size:13px;margin-top:16px;text-align:center;background:rgba(239,68,68,.1);padding:12px;border-radius:8px}
+
+/* Status Indicator */
+.si{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--suc);background:rgba(16,185,129,.1);padding:8px 16px;border-radius:20px;border:1px solid rgba(16,185,129,.2);margin:0 auto;width:fit-content}
 .dot{width:8px;height:8px;background:var(--suc);border-radius:50%;box-shadow:0 0 10px var(--suc);animation:pl 2s infinite}
 @keyframes pl{0%,100%{opacity:1}50%{opacity:.5}}
-/* Views */
-.vc{padding:32px;display:none;animation:fi .3s ease;max-width:1000px;margin:0 auto;width:100%}
-.vc.ac{display:block}
-@keyframes fi{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.ph{margin-bottom:32px}
-.pt{font-size:28px;font-weight:700;margin-bottom:8px}
-.ps{color:var(--mut);font-size:15px}
-/* Deploy Grid */
-.dg{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
-.dh img{width:100%;max-width:280px;border-radius:20px;margin-bottom:20px;box-shadow:0 20px 40px rgba(0,0,0,.5);border:1px solid var(--brd)}
-.dh h1{font-size:36px;font-weight:800;line-height:1.2;margin-bottom:15px;background:linear-gradient(to right,#fff,#a1a1aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.dh p{color:var(--mut);font-size:15px;line-height:1.6}
-/* Pairing Card */
-.pc{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:32px;box-shadow:0 20px 40px rgba(0,0,0,.4);position:relative;overflow:hidden}
-.pc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--pri),transparent)}
-.ig{margin-bottom:20px}
-.ig label{display:block;font-size:13px;color:var(--mut);margin-bottom:8px;font-weight:500}
-.ig input{width:100%;padding:14px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;color:#fff;outline:none;font-size:15px}
-.ig input:focus{border-color:var(--pri);box-shadow:0 0 15px rgba(99,102,241,.2)}
-.bt{width:100%;padding:14px;background:var(--pri);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:10px}
-.bt:hover{background:var(--prih)}
-.bt:disabled{background:#3f3f46;cursor:not-allowed}
-.sp{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.rb{display:none;margin-top:20px;background:var(--hov);border:1px solid var(--brd);padding:20px;border-radius:12px;text-align:center}
-.cd{font-size:36px;font-weight:800;letter-spacing:6px;color:var(--pri);margin:15px 0;text-shadow:0 0 20px rgba(99,102,241,.4)}
-.mb2{display:none;margin-top:20px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);padding:20px;border-radius:12px;text-align:center}
-.bd{background:none;border:1px solid var(--dng);color:var(--dng);margin-top:15px}
-.bd:hover{background:rgba(239,68,68,.1)}
-.et{display:none;color:var(--dng);font-size:13px;margin-top:15px;text-align:center}
-/* Stats */
-.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:32px}
-.sc{background:var(--card);border:1px solid var(--brd);padding:24px;border-radius:12px}
-.st{font-size:13px;color:var(--mut);margin-bottom:8px}
-.sv{font-size:32px;font-weight:700}
-/* Settings */
-.setg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.sti{background:var(--card);border:1px solid var(--brd);padding:20px;border-radius:12px;display:flex;justify-content:space-between;align-items:center}
-.ts{position:relative;width:44px;height:24px}
-.ts input{opacity:0;width:0;height:0}
-.sl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#3f3f46;transition:.4s;border-radius:24px}
-.sl:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.4s;border-radius:50%}
-input:checked+.sl{background:var(--pri)}
-input:checked+.sl:before{transform:translateX(20px)}
-/* FAQ */
-.fq{background:var(--card);border:1px solid var(--brd);border-radius:12px;margin-bottom:12px;overflow:hidden}
-.qq{padding:20px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between}
-.qa{padding:0 20px 20px;color:var(--mut);font-size:14px;line-height:1.6;display:none}
-@media(max-width:768px){
-.sb{position:absolute;height:100%}
-.dg{grid-template-columns:1fr;text-align:center}
-.dh img{margin:0 auto 20px}
-.dh h1{font-size:28px}
-.pc,.vc{text-align:left;padding:20px}
-}
+.ft{text-align:center;font-size:12px;color:var(--mut);margin-top:10px}
 </style>
 </head>
 <body>
 
-<aside class="sb cl" id="sb">
-<div class="br">
-<img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg">
-ALPHA-XMD
-</div>
-<div class="nm">
-<div class="ni" onclick="sv('deploy',this)">Deploy Bot</div>
-<div class="ni" onclick="sv('dashboard',this)">Dashboard</div>
-<div class="ni" onclick="sv('settings',this)">Settings</div>
-<div class="ni" onclick="sv('support',this)">Support</div>
-</div>
-</aside>
+<div class="wrap">
+  <!-- Header -->
+  <div class="hd">
+    <img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg" alt="Bot">
+    <h1>Alpha-XMD Cloud</h1>
+    <p>Deploy your bot in seconds. No setup required.</p>
+  </div>
 
-<main class="mc">
-<header class="tb">
-<button class="mb" onclick="tsb()">
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-<div class="tr">
-<div class="si">
-<div class="dot" id="sdot"></div>
-<span id="ls">Online</span>
-</div>
-</div>
-</header>
+  <!-- Live Stats -->
+  <div class="stats">
+    <div class="st">
+      <div class="st-t">Bots Online</div>
+      <div class="st-v" id="v-on">0</div>
+    </div>
+    <div class="st">
+      <div class="st-t">Total Linked</div>
+      <div class="st-v" id="v-tot">0</div>
+    </div>
+    <div class="st">
+      <div class="st-t">Uptime</div>
+      <div class="st-v" style="color:var(--txt)">99.9%</div>
+    </div>
+  </div>
 
-<div id="v-deploy" class="vc ac">
-<div class="dg">
-<div class="dh">
-<img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg">
-<h1>Connect Your WhatsApp</h1>
-<p>Deploy your personal Alpha-XMD bot in seconds. Enter your number, get a code, and link it via WhatsApp to activate all 300+ features.</p>
-</div>
-<div class="pc">
-<h3 style="margin-bottom:20px;font-size:18px">Generate Pairing Code</h3>
-<div class="ig" id="ia">
-<label>WhatsApp Number (with country code)</label>
-<input type="tel" id="ph" placeholder="e.g., 1234567890">
-</div>
-<button class="bt" id="gb" onclick="rc()">
-<span id="btx">Generate Code</span>
-<div class="sp" id="sp"></div>
-</button>
-<div class="rb" id="rb">
-<p style="font-size:13px;color:var(--mut)">Open WhatsApp > Linked Devices</p>
-<div class="cd" id="cd">----</div>
-</div>
-<div class="mb2" id="mb">
-<h3 style="color:var(--txt);font-size:16px">Bot is Active</h3>
-<p style="font-size:13px;color:var(--mut);margin-top:5px">This number is running 24/7.</p>
-<button class="bt bd" onclick="db()">Disconnect Session</button>
-</div>
-<div class="et" id="et"></div>
-</div>
-</div>
-</div>
+  <div class="si">
+    <div class="dot" id="s-dot"></div>
+    <span id="s-txt">Systems Operational</span>
+  </div>
 
-<div id="v-dashboard" class="vc">
-<div class="ph">
-<h2 class="pt">Platform Overview</h2>
-<p class="ps">Live statistics and active deployments.</p>
-</div>
-<div class="sg">
-<div class="sc">
-<div class="st">Bots Online Now</div>
-<div class="sv" id="tb">0</div>
-</div>
-<div class="sc">
-<div class="st">System Status</div>
-<div class="sv" style="color:var(--suc)">Healthy</div>
-</div>
-<div class="sc">
-<div class="st">Uptime</div>
-<div class="sv">99.9%</div>
-</div>
-</div>
-</div>
+  <!-- Main Card -->
+  <div class="crd">
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--pri)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      Link WhatsApp
+    </h2>
+    
+    <div class="ig" id="in-area">
+      <label>WhatsApp Number (Country Code included)</label>
+      <input type="tel" id="ph" placeholder="e.g., 1234567890">
+    </div>
+    
+    <button class="bt" id="gen-b" onclick="rc()">
+      <span id="b-txt">Generate Pairing Code</span>
+      <div class="sp" id="sp"></div>
+    </button>
 
-<div id="v-settings" class="vc">
-<div class="ph">
-<h2 class="pt">Bot Configuration</h2>
-<p class="ps">Manage how your bot behaves.</p>
-</div>
-<div class="setg">
-<div class="sti"><div><h4 style="margin-bottom:4px;font-size:15px">Auto Read</h4><p style="font-size:12px;color:gray">Mark as read</p></div><label class="ts"><input type="checkbox" checked><span class="sl"></span></label></div>
-<div class="sti"><div><h4 style="margin-bottom:4px;font-size:15px">Auto Typing</h4><p style="font-size:12px;color:gray">Show typing</p></div><label class="ts"><input type="checkbox" checked><span class="sl"></span></label></div>
-<div class="sti"><div><h4 style="margin-bottom:4px;font-size:15px">Anti-Delete</h4><p style="font-size:12px;color:gray">Recover messages</p></div><label class="ts"><input type="checkbox" checked><span class="sl"></span></label></div>
-<div class="sti"><div><h4 style="margin-bottom:4px;font-size:15px">Anti-Link</h4><p style="font-size:12px;color:gray">Delete links</p></div><label class="ts"><input type="checkbox"><span class="sl"></span></label></div>
-<div class="sti"><div><h4 style="margin-bottom:4px;font-size:15px">Auto React</h4><p style="font-size:12px;color:gray">Random emojis</p></div><label class="ts"><input type="checkbox" checked><span class="sl"></span></label></div>
-<div class="sti"><div><h4 style="margin-bottom:4px;font-size:15px">Anti-Call</h4><p style="font-size:12px;color:gray">Reject calls</p></div><label class="ts"><input type="checkbox"><span class="sl"></span></label></div>
-</div>
-</div>
+    <!-- Result Code -->
+    <div class="res" id="res-b">
+      <p style="font-size:12px;color:var(--mut)">Enter in WhatsApp > Linked Devices</p>
+      <div class="cd" id="cd">----</div>
+    </div>
 
-<div id="v-support" class="vc">
-<div class="ph">
-<h2 class="pt">Support & FAQ</h2>
-<p class="ps">Need help?</p>
-</div>
-<div class="fq">
-<div class="qq" onclick="tf(this)">How do I link my bot? <span>▼</span></div>
-<div class="qa">Enter your number on the Deploy page, get the code, open WhatsApp > Linked Devices > Link with Phone Number, and enter the code.</div>
-</div>
-<div class="fq">
-<div class="qq" onclick="tf(this)">How do I disconnect? <span>▼</span></div>
-<div class="qa">Enter your number on the Deploy page, click "Disconnect Session". This unlinks the bot and deletes the session.</div>
-</div>
-<div class="fq">
-<div class="qq" onclick="tf(this)">Is my data secure? <span>▼</span></div>
-<div class="qa">Yes. Your session is stored securely on our private servers. We do not access your chats.</div>
-</div>
-</div>
+    <!-- Manage Session -->
+    <div class="mg" id="mg-b">
+      <h3 style="font-size:15px;color:var(--txt)">Device Already Linked</h3>
+      <p style="font-size:12px;color:var(--mut);margin-top:4px">This number is running 24/7 in the cloud.</p>
+      <button class="bt bd" onclick="db()">Disconnect Session</button>
+    </div>
 
-</main>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="ft">© 2026 Alpha-XMD. Your number is never shown publicly.</div>
+</div>
 
 <script>
-const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";
-function tsb(){document.getElementById('sb').classList.toggle('cl')}
-function sv(v,e){
-document.querySelectorAll('.vc').forEach(x=>x.classList.remove('ac'));
-document.querySelectorAll('.ni').forEach(x=>x.classList.remove('ac'));
-document.getElementById('v-'+v).classList.add('ac');
-if(e)e.classList.add('ac');
-if(window.innerWidth<=768)document.getElementById('sb').classList.add('cl');
-}
-function tf(e){
-const a=e.nextElementSibling,i=a.style.display==='block';
-document.querySelectorAll('.qa').forEach(x=>x.style.display='none');
-a.style.display=i?'none':'block';
-}
-async function cs(){
-try{
-const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}});
-const d=await r.json();
-if(d.status==="online"){
-document.getElementById('ls').innerText="Online";
-document.getElementById('ls').style.color="var(--suc)";
-document.getElementById('sdot').style.background="var(--suc)";
-document.getElementById('sdot').style.boxShadow="0 0 10px var(--suc)";
-document.getElementById('tb').innerText=d.connected;
-}
-}catch(e){
-document.getElementById('ls').innerText="Offline";
-document.getElementById('ls').style.color="var(--dng)";
-document.getElementById('sdot').style.background="var(--dng)";
-document.getElementById('sdot').style.boxShadow="0 0 10px var(--dng)";
-}
-}
-setInterval(cs,10000);cs();
-async function rc(){
-const p=document.getElementById('ph').value.replace(/[^0-9]/g,'');
-const b=document.getElementById('gb'),tx=document.getElementById('btx'),sp=document.getElementById('sp'),rb=document.getElementById('rb'),mb=document.getElementById('mb'),ia=document.getElementById('ia'),et=document.getElementById('et');
-if(p.length<10)return alert("Enter valid number.");
-cp=p;tx.innerText="Connecting...";sp.style.display="block";b.disabled=true;rb.style.display='none';mb.style.display='none';et.style.display='none';
-try{
-const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
-const d=await r.json();
-if(d.success){
-b.style.display='none';ia.style.display='none';
-if(d.alreadyPaired)mb.style.display='block';
-else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
-}else{
-et.innerText=d.error||"Failed.";et.style.display='block';tx.innerText="Generate Code";sp.style.display="none";b.disabled=false;
-}
-}catch(e){
-et.innerText="Network Error.";et.style.display='block';tx.innerText="Generate Code";sp.style.display="none";b.disabled=false;
-}
-}
-async function db(){
-if(!confirm("Unlink WhatsApp and delete session?"))return;
-const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
-try{
-await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
-window.location.reload();
-}catch(e){alert("Failed.");b.innerText="Disconnect Session";b.disabled=false}
-}
+  const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";
+
+  async function us(){
+    try{
+      const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}});
+      const d=await r.json();
+      if(d.status==="online"){
+        document.getElementById('v-on').innerText=d.connected||0;
+        document.getElementById('v-tot').innerText=d.totalPaired||d.connected||0;
+      }
+    }catch(e){
+      document.getElementById('s-txt').innerText="Server Offline";
+      document.getElementById('s-txt').style.color="var(--dng)";
+      document.getElementById('s-dot').style.background="var(--dng)";
+      document.getElementById('s-dot').style.boxShadow="0 0 10px var(--dng)";
+    }
+  }
+  setInterval(us,15000);us();
+
+  async function rc(){
+    const p=document.getElementById('ph').value.replace(/[^0-9]/g,'');
+    const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-area'),er=document.getElementById('err');
+    if(p.length<10)return alert("Enter a valid number.");
+    cp=p;b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";er.style.display="none";
+    try{
+      const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
+      const d=await r.json();
+      if(d.success){
+        b.style.display='none';ia.style.display='none';
+        if(d.alreadyPaired)mb.style.display='block';
+        else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
+      }else{
+        er.innerText=d.error||"Failed.";er.style.display='block';b.disabled=false;bt.innerText="Generate Pairing Code";sp.style.display="none";
+      }
+    }catch(e){
+      er.innerText="Network Error. Try again.";er.style.display='block';b.disabled=false;bt.innerText="Generate Pairing Code";sp.style.display="none";
+    }
+  }
+
+  async function db(){
+    if(!confirm("Unlink device and delete session?"))return;
+    const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
+    try{
+      await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
+      window.location.reload();
+    }catch(e){alert("Failed.");b.innerText="Disconnect Session";b.disabled=false}
+  }
 </script>
 </body>
 </html>
