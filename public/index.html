@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alpha-XMD | Next-Gen WhatsApp Bot</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<!-- International Telephone Input CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/css/intlTelInput.css">
 <style>
 :root{--bg:#050505;--card:#0f0f11;--brd:#27272a;--txt:#fff;--mut:#a1a1aa;--pri:#00ff88;--pri-glow:rgba(0,255,136,.15)}
@@ -13,7 +12,7 @@
 body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
 h1,h2,h3,h4,.brand{font-family:'Space Grotesk',sans-serif}
 
-/* Background Gradients */
+/* Gradients */
 .mesh{position:absolute;width:600px;height:600px;background:radial-gradient(circle,var(--pri-glow) 0%,transparent 60%);top:-200px;left:-200px;filter:blur(60px);z-index:0;pointer-events:none}
 .mesh2{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1) 0%,transparent 60%);bottom:-100px;right:-100px;filter:blur(60px);z-index:0;pointer-events:none}
 
@@ -25,7 +24,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .dot{width:6px;height:6px;background:var(--pri);border-radius:50%;box-shadow:0 0 10px var(--pri);animation:pl 2s infinite}
 @keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* Hero Layout */
+/* Hero */
 .hero{display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center;max-width:1100px;margin:0 auto;padding:80px 5%;position:relative;z-index:10}
 .tag{display:inline-block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:20px;color:var(--mut)}
 .hero h1{font-size:52px;line-height:1.1;font-weight:700;margin-bottom:20px;letter-spacing:-1.5px}
@@ -35,7 +34,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .f-badge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
 .f-badge svg{color:var(--pri)}
 
-/* Pairing Card */
+/* Card */
 .card{background:rgba(15,15,17,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.5);position:relative;animation:float 6s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
@@ -43,7 +42,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 
 .in-group{margin-bottom:20px}
 .in-group label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-
 .btn{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:.3s;display:flex;justify-content:center;align-items:center;gap:10px}
 .btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px var(--pri-glow)}
 .btn:disabled{background:#333;color:#888;cursor:not-allowed;transform:none;box-shadow:none}
@@ -57,7 +55,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .mg{display:none;margin-top:24px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);padding:24px;border-radius:16px;text-align:center}
 .bd{background:transparent;border:1px solid #ef4444;color:#ef4444;margin-top:16px;padding:12px;font-size:14px}
 .bd:hover{background:rgba(239,68,68,.1);box-shadow:none}
-.err{display:none;color:#ef4444;font-size:13px;margin-top:16px;text-align:center;background:rgba(239,68,68,.1);padding:12px;border-radius:8px}
 
 /* Stats */
 .stats{display:flex;justify-content:center;gap:40px;padding:40px 5%;border-top:1px solid rgba(255,255,255,.05);margin-top:60px;position:relative;z-index:10}
@@ -65,7 +62,26 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .stat-v{font-size:32px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--pri)}
 .stat-t{font-size:12px;color:var(--mut);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
 
-/* Intl-Tel-Input Dark Mode Override */
+/* HOW IT WORKS SECTION */
+.how{max-width:1000px;margin:60px auto;padding:0 5%;text-align:center;position:relative;z-index:10}
+.how h2{font-size:32px;margin-bottom:40px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.step{background:var(--card);border:1px solid var(--brd);padding:32px;border-radius:20px;text-align:center;transition:.3s}
+.step:hover{border-color:var(--pri)}
+.step-num{width:40px;height:40px;background:rgba(0,255,136,.1);color:var(--pri);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;margin:0 auto 20px}
+.step h3{font-size:18px;margin-bottom:10px}
+.step p{font-size:14px;color:var(--mut);line-height:1.6}
+
+/* TOAST NOTIFICATIONS */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--card);border:1px solid var(--brd);border-left:4px solid var(--pri);padding:16px 20px;border-radius:8px;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;transform:translateX(120%);animation:slideIn .3s forwards}
+.toast.error{border-left-color:#ef4444}
+.toast.error svg{color:#ef4444}
+.toast svg{color:var(--pri)}
+@keyframes slideIn{to{transform:translateX(0)}}
+@keyframes fadeOut{to{opacity:0;transform:translateX(120%)}}
+
+/* Intl-Tel-Input Override */
 .iti { width: 100%; display: block; }
 .iti__flag-container { background: rgba(0,0,0,.5) !important; border-radius: 12px 0 0 12px !important; }
 .iti__selected-flag { background: transparent !important; padding: 0 16px !important; }
@@ -85,6 +101,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .hero p{margin:0 auto 30px}
 .f-badges{justify-content:center}
 .stats{flex-direction:column;gap:24px}
+.steps{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -115,7 +132,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
     
     <div class="in-group" id="in-a">
       <label>Phone Number</label>
-      <!-- The library replaces this input with the full UI -->
       <input type="tel" id="phone">
     </div>
     
@@ -134,9 +150,29 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
       <p style="font-size:13px;color:var(--mut)">This number is active in the cloud.</p>
       <button class="btn bd" onclick="db()">Disconnect Session</button>
     </div>
-
-    <div class="err" id="err"></div>
   </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="how">
+    <h2>How It Works</h2>
+    <div class="steps">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h3>Enter Number</h3>
+            <p>Select your country and type your WhatsApp number securely.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <h3>Get Code</h3>
+            <p>Receive an 8-digit pairing code instantly on your screen.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <h3>Link Device</h3>
+            <p>Go to WhatsApp > Linked Devices, enter the code, and the bot goes live.</p>
+        </div>
+    </div>
 </div>
 
 <div class="stats">
@@ -145,23 +181,38 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
   <div class="stat"><div class="stat-v" style="color:#fff">24/7</div><div class="stat-t">Cloud Uptime</div></div>
 </div>
 
-<!-- Intl-Tel-Input Script -->
+<!-- Toast Container -->
+<div class="toast-container" id="toast-box"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/intlTelInput.min.js"></script>
-
 <script>
-const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";
-let iti; // Global variable for the phone input
+const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";let iti;
 
-// Initialize the phone input
 document.addEventListener("DOMContentLoaded", () => {
     const input = document.querySelector("#phone");
     iti = window.intlTelInput(input, {
         utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/utils.js",
-        initialCountry: "zw", // Default to Zimbabwe, user can change it
-        separateDialCode: true, // Shows the country code in a separate box
-        dropdownContainer: document.body, // Prevents it from being cut off inside the card
+        initialCountry: "zw",
+        separateDialCode: true,
+        dropdownContainer: document.body,
     });
 });
+
+// Custom Toast Notification System
+function showToast(msg, isError = false) {
+    const box = document.getElementById('toast-box');
+    const t = document.createElement('div');
+    t.className = 'toast' + (isError ? ' error' : '');
+    t.innerHTML = isError 
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ${msg}`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ${msg}`;
+    box.appendChild(t);
+    
+    setTimeout(() => {
+        t.style.animation = 'fadeOut .3s forwards';
+        setTimeout(() => t.remove(), 300);
+    }, 3000);
+}
 
 async function us(){
 try{
@@ -180,13 +231,12 @@ document.getElementById('s-dot').style.background="#ef4444";
 }setInterval(us,15000);us();
 
 async function rc(){
-// Get the full number WITH the country code (e.g., +263784969735)
 const p = iti.getNumber().replace("+", ""); 
-if(!iti.isValidNumber()) return alert("Please enter a valid phone number.");
+if(!iti.isValidNumber()) return showToast("Please enter a valid phone number.", true);
 
 cp=p;
-const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-a'),er=document.getElementById('err');
-b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";er.style.display="none";
+const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-a');
+b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";
 try{
 const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
 const d=await r.json();
@@ -194,20 +244,22 @@ if(d.success){
 b.style.display='none';ia.style.display='none';
 if(d.alreadyPaired)mb.style.display='block';
 else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
+showToast("Code generated successfully!");
 }else{
-er.innerText=d.error||"Failed.";er.style.display='block';b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+showToast(d.error||"Failed to generate code.", true);b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
 }
 }catch(e){
-er.innerText="Network Error.";er.style.display='block';b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+showToast("Network Error. Server might be restarting.", true);b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
 }
 }
+
 async function db(){
 if(!confirm("Unlink device?"))return;
 const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
 try{
 await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
-window.location.reload();
-}catch(e){alert("Failed.");b.innerText="Disconnect";b.disabled=false}
+showToast("Session disconnected.");setTimeout(()=>window.location.reload(),1000);
+}catch(e){showToast("Failed to disconnect.", true);b.innerText="Disconnect";b.disabled=false}
 }
 </script>
 </body>
