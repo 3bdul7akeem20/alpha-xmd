@@ -3,171 +3,206 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alpha-XMD | Cloud Connect</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Alpha-XMD | Next-Gen WhatsApp Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0f1a;--card:#111827;--brd:#1f2937;--txt:#f9fafb;--mut:#9ca3af;--pri:#10b981;--prih:#059669;--suc:#10b981;--dng:#ef4444}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif}
-body{background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background-image:radial-gradient(circle at 50% -20%,rgba(16,185,129,.15),transparent 50%)}
-.wrap{width:100%;max-width:440px;display:flex;flex-direction:column;gap:24px}
+:root{--bg:#050505;--card:#0f0f11;--brd:#27272a;--txt:#fff;--mut:#a1a1aa;--pri:#00ff88;--pri-glow:rgba(0,255,136,.15);--sec:#7c3aed}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
+h1,h2,h3,h4,.brand{font-family:'Space Grotesk',sans-serif}
 
-/* Header */
-.hd{text-align:center}
-.hd img{width:64px;height:64px;border-radius:16px;margin-bottom:16px;border:1px solid var(--brd);box-shadow:0 10px 20px rgba(0,0,0,.4)}
-.hd h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
-.hd p{color:var(--mut);font-size:14px;margin-top:8px}
+/* Mesh Gradients */
+.mesh{position:absolute;width:600px;height:600px;background:radial-gradient(circle,var(--pri-glow) 0%,transparent 60%);top:-200px;left:-200px;filter:blur(60px);z-index:0;pointer-events:none}
+.mesh2{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1) 0%,transparent 60%);bottom:-100px;right:-100px;filter:blur(60px);z-index:0;pointer-events:none}
 
-/* Stats Bar */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
-.st{background:var(--card);border:1px solid var(--brd);padding:16px;border-radius:16px;text-align:center}
-.st-t{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
-.st-v{font-size:22px;font-weight:800;color:var(--pri)}
+/* Navbar */
+nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5%;border-bottom:1px solid rgba(255,255,255,.05);position:relative;z-index:10;backdrop-filter:blur(10px)}
+.brand{font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px;letter-spacing:-.5px}
+.brand img{width:32px;height:32px;border-radius:8px}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--pri);background:rgba(0,255,136,.1);padding:6px 14px;border-radius:20px;border:1px solid rgba(0,255,136,.2)}
+.dot{width:6px;height:6px;background:var(--pri);border-radius:50%;box-shadow:0 0 10px var(--pri);animation:pl 2s infinite}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* Card */
-.crd{background:var(--card);border:1px solid var(--brd);border-radius:24px;padding:32px;box-shadow:0 20px 40px rgba(0,0,0,.4);position:relative;overflow:hidden}
-.crd::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--pri),transparent)}
-.crd h2{font-size:18px;font-weight:700;margin-bottom:24px;display:flex;align-items:center;gap:8px}
-.ig{margin-bottom:20px}
-.ig label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600}
-.ig input{width:100%;padding:16px;background:var(--bg);border:1px solid var(--brd);border-radius:12px;color:var(--txt);font-size:15px;outline:none;transition:.2s}
-.ig input:focus{border-color:var(--pri);box-shadow:0 0 15px rgba(16,185,129,.2)}
-.bt{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:10px;transition:.2s}
-.bt:hover{background:var(--prih)}
-.bt:disabled{background:#374151;color:var(--mut);cursor:not-allowed}
+/* Hero Layout */
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:60px;align-items:center;max-width:1200px;margin:0 auto;padding:80px 5%;position:relative;z-index:10}
+.tag{display:inline-block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:20px;color:var(--mut)}
+.hero h1{font-size:56px;line-height:1.1;font-weight:700;margin-bottom:20px;letter-spacing:-1.5px}
+.hero h1 span{color:var(--pri);text-shadow:0 0 20px var(--pri-glow)}
+.hero p{font-size:18px;color:var(--mut);line-height:1.6;margin-bottom:40px;max-width:500px}
+
+/* Feature Badges */
+.f-badges{display:flex;gap:24px}
+.f-badge{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500}
+.f-badge svg{color:var(--pri)}
+
+/* Pairing Card (Glassmorphism) */
+.card{background:rgba(15,15,17,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.05) inset;position:relative}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
+.card h3{font-size:20px;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.in-group{margin-bottom:20px}
+.in-group label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.in-group input{width:100%;padding:16px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#fff;font-size:16px;outline:none;transition:.3s;font-family:'Space Grotesk',sans-serif;letter-spacing:1px}
+.in-group input:focus{border-color:var(--pri);box-shadow:0 0 20px var(--pri-glow);background:rgba(0,0,0,.8)}
+.btn{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:.3s;display:flex;justify-content:center;align-items:center;gap:10px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px var(--pri-glow)}
+.btn:disabled{background:#333;color:#888;cursor:not-allowed;transform:none;box-shadow:none}
 .sp{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-radius:50%;border-top-color:#000;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Result Boxes */
-.res{display:none;margin-top:20px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);padding:20px;border-radius:16px;text-align:center;animation:fi .3s ease}
-@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-.cd{font-size:36px;font-weight:800;letter-spacing:6px;color:var(--pri);margin:15px 0;text-shadow:0 0 20px rgba(16,185,129,.3)}
-.mg{display:none;margin-top:20px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);padding:20px;border-radius:16px;text-align:center}
-.bd{background:transparent;border:1px solid var(--dng);color:var(--dng);margin-top:15px;padding:12px;font-size:14px}
-.bd:hover{background:rgba(239,68,68,.1)}
-.err{display:none;color:var(--dng);font-size:13px;margin-top:16px;text-align:center;background:rgba(239,68,68,.1);padding:12px;border-radius:8px}
+/* Results */
+.res{display:none;margin-top:24px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);padding:24px;border-radius:16px;text-align:center;animation:fi .3s}
+@keyframes fi{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.code{font-size:40px;font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:8px;color:var(--pri);margin:16px 0;text-shadow:0 0 30px var(--pri-glow)}
+.mg{display:none;margin-top:24px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);padding:24px;border-radius:16px;text-align:center}
+.bd{background:transparent;border:1px solid #ef4444;color:#ef4444;margin-top:16px;padding:12px;font-size:14px}
+.bd:hover{background:rgba(239,68,68,.1);box-shadow:none}
+.err{display:none;color:#ef4444;font-size:13px;margin-top:16px;text-align:center;background:rgba(239,68,68,.1);padding:12px;border-radius:8px}
 
-/* Status Indicator */
-.si{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--suc);background:rgba(16,185,129,.1);padding:8px 16px;border-radius:20px;border:1px solid rgba(16,185,129,.2);margin:0 auto;width:fit-content}
-.dot{width:8px;height:8px;background:var(--suc);border-radius:50%;box-shadow:0 0 10px var(--suc);animation:pl 2s infinite}
-@keyframes pl{0%,100%{opacity:1}50%{opacity:.5}}
-.ft{text-align:center;font-size:12px;color:var(--mut);margin-top:10px}
+/* Stats Bar */
+.stats{display:flex;justify-content:center;gap:40px;padding:40px 5%;border-top:1px solid rgba(255,255,255,.05);margin-top:60px;position:relative;z-index:10}
+.stat{text-align:center}
+.stat-v{font-size:32px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--pri)}
+.stat-t{font-size:13px;color:var(--mut);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
+
+@media(max-width:900px){
+.hero{grid-template-columns:1fr;text-align:center;gap:40px;padding:40px 5%}
+.hero h1{font-size:42px}
+.hero p{margin:0 auto 30px}
+.f-badges{justify-content:center}
+.stats{flex-direction:column;gap:24px}
+}
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <!-- Header -->
-  <div class="hd">
-    <img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg" alt="Bot">
-    <h1>Alpha-XMD Cloud</h1>
-    <p>Deploy your bot in seconds. No setup required.</p>
-  </div>
+<div class="mesh"></div>
+<div class="mesh2"></div>
 
-  <!-- Live Stats -->
-  <div class="stats">
-    <div class="st">
-      <div class="st-t">Bots Online</div>
-      <div class="st-v" id="v-on">0</div>
-    </div>
-    <div class="st">
-      <div class="st-t">Total Linked</div>
-      <div class="st-v" id="v-tot">0</div>
-    </div>
-    <div class="st">
-      <div class="st-t">Uptime</div>
-      <div class="st-v" style="color:var(--txt)">99.9%</div>
-    </div>
+<nav>
+  <div class="brand">
+    <img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg">
+    Alpha-XMD
   </div>
-
-  <div class="si">
+  <div class="status">
     <div class="dot" id="s-dot"></div>
-    <span id="s-txt">Systems Operational</span>
+    <span id="s-txt">Connecting...</span>
+  </div>
+</nav>
+
+<div class="hero">
+  <!-- Left Side: Marketing -->
+  <div>
+    <div class="tag">V2.0 NOW LIVE</div>
+    <h1>The Ultimate <span>WhatsApp Bot</span> Platform.</h1>
+    <p>Deploy a powerful multi-device WhatsApp bot in seconds. No servers, no coding, no hassle. Just enter your number and go.</p>
+    
+    <div class="f-badges">
+      <div class="f-badge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        99.9% Uptime
+      </div>
+      <div class="f-badge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Secure Session
+      </div>
+      <div class="f-badge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Instant Setup
+      </div>
+    </div>
   </div>
 
-  <!-- Main Card -->
-  <div class="crd">
-    <h2>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--pri)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-      Link WhatsApp
-    </h2>
+  <!-- Right Side: Pairing Card -->
+  <div class="card">
+    <h3>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Pairing Code
+    </h3>
     
-    <div class="ig" id="in-area">
-      <label>WhatsApp Number (Country Code included)</label>
-      <input type="tel" id="ph" placeholder="e.g., 1234567890">
+    <div class="in-group" id="in-a">
+      <label>WhatsApp Number</label>
+      <input type="tel" id="ph" placeholder="e.g., 263784969735">
     </div>
     
-    <button class="bt" id="gen-b" onclick="rc()">
-      <span id="b-txt">Generate Pairing Code</span>
+    <button class="btn" id="gen-b" onclick="rc()">
+      <span id="b-txt">Generate Code</span>
       <div class="sp" id="sp"></div>
     </button>
 
-    <!-- Result Code -->
     <div class="res" id="res-b">
-      <p style="font-size:12px;color:var(--mut)">Enter in WhatsApp > Linked Devices</p>
-      <div class="cd" id="cd">----</div>
+      <p style="font-size:13px;color:var(--mut)">Enter in WhatsApp > Linked Devices</p>
+      <div class="code" id="cd">----</div>
     </div>
 
-    <!-- Manage Session -->
     <div class="mg" id="mg-b">
-      <h3 style="font-size:15px;color:var(--txt)">Device Already Linked</h3>
-      <p style="font-size:12px;color:var(--mut);margin-top:4px">This number is running 24/7 in the cloud.</p>
-      <button class="bt bd" onclick="db()">Disconnect Session</button>
+      <h3 style="font-size:16px;margin-bottom:5px">Already Connected</h3>
+      <p style="font-size:13px;color:var(--mut)">This number is currently active in the cloud.</p>
+      <button class="btn bd" onclick="db()">Disconnect Session</button>
     </div>
 
     <div class="err" id="err"></div>
   </div>
+</div>
 
-  <div class="ft">© 2026 Alpha-XMD. Your number is never shown publicly.</div>
+<div class="stats">
+  <div class="stat">
+    <div class="stat-v" id="st-1">0</div>
+    <div class="stat-t">Active Bots</div>
+  </div>
+  <div class="stat">
+    <div class="stat-v" id="st-2">0</div>
+    <div class="stat-t">Total Paired</div>
+  </div>
+  <div class="stat">
+    <div class="stat-v" style="color:#fff">24/7</div>
+    <div class="stat-t">Cloud Uptime</div>
+  </div>
 </div>
 
 <script>
-  const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";
-
-  async function us(){
-    try{
-      const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}});
-      const d=await r.json();
-      if(d.status==="online"){
-        document.getElementById('v-on').innerText=d.connected||0;
-        document.getElementById('v-tot').innerText=d.totalPaired||d.connected||0;
-      }
-    }catch(e){
-      document.getElementById('s-txt').innerText="Server Offline";
-      document.getElementById('s-txt').style.color="var(--dng)";
-      document.getElementById('s-dot').style.background="var(--dng)";
-      document.getElementById('s-dot').style.boxShadow="0 0 10px var(--dng)";
-    }
-  }
-  setInterval(us,15000);us();
-
-  async function rc(){
-    const p=document.getElementById('ph').value.replace(/[^0-9]/g,'');
-    const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-area'),er=document.getElementById('err');
-    if(p.length<10)return alert("Enter a valid number.");
-    cp=p;b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";er.style.display="none";
-    try{
-      const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
-      const d=await r.json();
-      if(d.success){
-        b.style.display='none';ia.style.display='none';
-        if(d.alreadyPaired)mb.style.display='block';
-        else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
-      }else{
-        er.innerText=d.error||"Failed.";er.style.display='block';b.disabled=false;bt.innerText="Generate Pairing Code";sp.style.display="none";
-      }
-    }catch(e){
-      er.innerText="Network Error. Try again.";er.style.display='block';b.disabled=false;bt.innerText="Generate Pairing Code";sp.style.display="none";
-    }
-  }
-
-  async function db(){
-    if(!confirm("Unlink device and delete session?"))return;
-    const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
-    try{
-      await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
-      window.location.reload();
-    }catch(e){alert("Failed.");b.innerText="Disconnect Session";b.disabled=false}
-  }
+const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";
+async function us(){
+try{
+const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}});
+const d=await r.json();
+if(d.status==="online"){
+document.getElementById('s-txt').innerText="Systems Online";
+document.getElementById('st-1').innerText=d.connected||0;
+document.getElementById('st-2').innerText=d.totalPaired||d.connected||0;
+}
+}catch(e){
+document.getElementById('s-txt').innerText="Server Offline";
+document.getElementById('s-txt').style.color="#ef4444";
+document.getElementById('s-dot').style.background="#ef4444";
+}
+}setInterval(us,15000);us();
+async function rc(){
+const p=document.getElementById('ph').value.replace(/[^0-9]/g,'');
+const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-a'),er=document.getElementById('err');
+if(p.length<10)return alert("Enter valid number.");
+cp=p;b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";er.style.display="none";
+try{
+const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
+const d=await r.json();
+if(d.success){
+b.style.display='none';ia.style.display='none';
+if(d.alreadyPaired)mb.style.display='block';
+else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
+}else{
+er.innerText=d.error||"Failed.";er.style.display='block';b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+}
+}catch(e){
+er.innerText="Network Error.";er.style.display='block';b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+}
+}
+async function db(){
+if(!confirm("Unlink device?"))return;
+const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
+try{
+await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
+window.location.reload();
+}catch(e){alert("Failed.");b.innerText="Disconnect";b.disabled=false}
+}
 </script>
 </body>
 </html>
