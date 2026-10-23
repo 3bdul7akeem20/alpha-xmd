@@ -3,124 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alpha-XMD | Deploy Bot</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>Alpha-XMD | Premium WhatsApp Bot Hosting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background: linear-gradient(-45deg, #0f172a, #2e1065, #4c1d95, #0f172a); background-size: 400% 400%; animation: gradientBG 15s ease infinite; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; color: #fff; }
-        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        /* === GLOBAL & VARIABLES === */
+        :root {
+            --bg: #09090b;
+            --surface: #121214;
+            --surface-light: #18181b;
+            --border: #27272a;
+            --text-main: #fafafa;
+            --text-muted: #a1a1aa;
+            --primary: #22c55e;
+            --primary-glow: rgba(34, 197, 94, 0.2);
+            --accent: #a855f7;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         
-        .stats-bar { display: flex; gap: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 50px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .stat-item { font-size: 13px; color: #a1a1aa; display: flex; align-items: center; gap: 5px; }
-        .stat-dot { width: 8px; height: 8px; background: #33ff00; border-radius: 50%; box-shadow: 0 0 10px #33ff00; }
-        .stat-value { color: #fff; font-weight: 600; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(168, 85, 247, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(34, 197, 94, 0.08), transparent 25%);
+        }
 
-        .container { width: 100%; max-width: 400px; text-align: center; z-index: 10; }
-        .logo { width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255, 255, 255, 0.1); border-radius: 20px; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); }
-        .logo svg { width: 45px; height: 45px; fill: #33ff00; }
-        h1 { font-size: 28px; font-weight: 800; margin-bottom: 10px; background: -webkit-linear-gradient(45deg, #33ff00, #00ffcc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p.subtitle { font-size: 14px; color: #a1a1aa; margin-bottom: 30px; font-weight: 300; }
-
-        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px 25px; border-radius: 24px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); text-align: left; }
-        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 600; font-size: 16px; color: #e4e4e7; }
-        .card-header .icon-bg { background: rgba(51, 255, 0, 0.1); padding: 8px; border-radius: 10px; display: flex; color: #33ff00; }
-
-        .input-group { position: relative; margin-bottom: 20px; }
-        .input-group input { width: 100%; padding: 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; font-size: 16px; outline: none; transition: all 0.3s ease; }
-        .input-group input:focus { border-color: #33ff00; box-shadow: 0 0 15px rgba(51, 255, 0, 0.2); }
+        /* === NAVBAR === */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 5%;
+            border-bottom: 1px solid var(--border);
+            background: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo-container { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+        .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; justify-content: center; align-items: center; }
+        .logo-icon svg { width: 20px; height: 20px; fill: #000; }
         
-        .btn-main { width: 100%; padding: 16px; background: linear-gradient(90deg, #33ff00, #00cc00); color: #000; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(51, 255, 0, 0.4); }
-        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(51, 255, 0, 0.6); }
-        .btn-main:disabled { background: #3f3f46; color: #a1a1aa; cursor: not-allowed; box-shadow: none; transform: none; }
-        
-        .btn-danger { width: 100%; padding: 12px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 15px; }
-        .btn-danger:hover { background: #ef4444; color: #fff; }
+        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); background: var(--surface-light); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); }
+        .status-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        .spinner { display: none; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.3); border-radius: 50%; border-top-color: #000; animation: spin 1s ease-in-out infinite; }
+        /* === HERO SECTION === */
+        .hero {
+            text-align: center;
+            padding: 80px 20px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, #a1a1aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        /* === DEPLOYMENT CARD === */
+        .card {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Top gradient line on card */
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; font-size: 18px; font-weight: 600; }
+        .card-icon { color: var(--primary); background: var(--primary-glow); padding: 8px; border-radius: 10px; display: flex; }
+
+        .input-group { position: relative; margin-bottom: 15px; }
+        .input-group input {
+            width: 100%;
+            padding: 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+        .input-group input::placeholder { color: #52525b; }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-primary:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 4px 15px var(--primary-glow); }
+        .btn-primary:disabled { background: #3f3f46; color: #a1a1aa; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.3); border-radius: 50%; border-top-color: #000; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .result-box { display: none; margin-top: 20px; background: rgba(51, 255, 0, 0.05); border: 1px solid rgba(51, 255, 0, 0.2); border-radius: 16px; padding: 20px; text-align: center; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .result-box h3 { color: #33ff00; font-size: 18px; margin-bottom: 8px; }
-        .result-box p { font-size: 13px; color: #a1a1aa; margin-bottom: 15px; }
-        .code-display { font-size: 32px; font-weight: 800; letter-spacing: 4px; color: #fff; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; border: 1px dashed #33ff00; margin-bottom: 10px; text-shadow: 0 0 10px rgba(51, 255, 0, 0.5); }
+        .result-box { display: none; margin-top: 20px; background: var(--surface-light); border: 1px solid var(--border); border-radius: 16px; padding: 20px; text-align: center; }
+        .code-display { font-size: 32px; font-weight: 800; letter-spacing: 4px; color: var(--primary); background: var(--bg); padding: 15px; border-radius: 12px; border: 1px dashed var(--primary); margin: 15px 0; text-shadow: 0 0 10px var(--primary-glow); }
         
-        .error-text { display: none; color: #ef4444; font-size: 13px; margin-top: 15px; text-align: center; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 8px; }
+        .btn-danger { width: 100%; padding: 14px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 15px; }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .error-text { display: none; color: #ef4444; font-size: 13px; margin-top: 15px; text-align: center; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        /* === FEATURES SECTION === */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 60px 5%;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 30px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+        .feature-card:hover { border-color: #3f3f46; transform: translateY(-5px); }
+        .feature-icon { width: 40px; height: 40px; background: var(--surface-light); border-radius: 10px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; color: var(--accent); }
+        .feature-card h3 { font-size: 18px; margin-bottom: 10px; }
+        .feature-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+        /* === FOOTER === */
+        footer { margin-top: auto; border-top: 1px solid var(--border); padding: 30px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 36px; }
+            .hero { padding: 40px 20px; }
+            .card { padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="stats-bar">
-        <div class="stat-item">
-            <div class="stat-dot"></div>
-            Live Bots: <span class="stat-value" id="liveCount">0</span>
+    <!-- Navbar -->
+    <nav>
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1-8h-2V7h2v2z"/></svg>
+            </div>
+            ALPHA-XMD
         </div>
-    </div>
-
-    <div class="container">
-        <div class="logo">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1-8h-2V7h2v2z"/></svg>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span id="statusText">Systems Operational</span>
         </div>
-        
-        <h1>ALPHA-XMD</h1>
-        <p class="subtitle">Deploy your personal WhatsApp bot in seconds.</p>
+    </nav>
 
-        <div class="glass-card">
+    <!-- Hero & Deployment -->
+    <section class="hero">
+        <h1>Deploy Your WhatsApp Bot<br>In Seconds.</h1>
+        <p>Experience lightning-fast pairing, 24/7 uptime, and premium built-in features. No coding required.</p>
+
+        <div class="card">
             <div class="card-header">
-                <div class="icon-bg">
+                <div class="card-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                 </div>
-                <span id="cardTitle">Pairing Code</span>
+                <span id="cardTitle">Generate Pairing Code</span>
             </div>
 
             <div id="input-area">
                 <div class="input-group">
-                    <input type="tel" id="phone" placeholder="263784969735 (No + or spaces)">
+                    <input type="tel" id="phone" placeholder="e.g., 263784969735">
                 </div>
-                <button class="btn-main" id="generateBtn" onclick="requestCode()">
+                <button class="btn-primary" id="generateBtn" onclick="requestCode()">
                     <span id="btnText">Generate Code</span>
                     <div class="spinner" id="btnSpinner"></div>
                 </button>
             </div>
 
-            <!-- Pairing Result -->
+            <!-- Result Area -->
             <div class="result-box" id="resultBox">
-                <h3>✅ Code Generated!</h3>
-                <p>Link this in WhatsApp > Linked Devices</p>
+                <h3 style="color: var(--primary); margin-bottom: 5px;">✅ Code Generated</h3>
+                <p style="font-size: 13px; color: var(--text-muted);">Enter this in WhatsApp > Linked Devices</p>
                 <div class="code-display" id="codeDisplay">----</div>
             </div>
 
-            <!-- Manage Session (Shows if already paired) -->
-            <div class="result-box" id="manageBox" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05);">
-                <h3 style="color:#fff">Bot is Active</h3>
-                <p>This number is already running 24/7.</p>
+            <!-- Manage Area -->
+            <div class="result-box" id="manageBox" style="border-color: var(--primary);">
+                <h3 style="margin-bottom: 5px;">Bot is Active</h3>
+                <p style="font-size: 13px; color: var(--text-muted);">This number is already running 24/7.</p>
                 <button class="btn-danger" id="disconnectBtn" onclick="disconnectBot()">
-                    Disconnect Bot
+                    Disconnect Session
                 </button>
             </div>
 
             <div class="error-text" id="errorText"></div>
         </div>
-    </div>
+    </section>
 
+    <!-- Features -->
+    <section class="features">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+            </div>
+            <h3>Instant Setup</h3>
+            <p>Get your bot online in less than 60 seconds. No complex configuration or technical knowledge required.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3>Secure & Private</h3>
+            <p>Your session is encrypted and stored securely. We never store your messages or personal chats.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <h3>24/7 Uptime</h3>
+            <p>Our servers run continuously in the cloud. Your bot stays online even when your phone is off.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2026 ALPHA-XMD. Built with ❤️ for the community.
+    </footer>
+
+    <!-- Scripts -->
     <script>
         const API_URL = "https://itinerary-splashy-flyer.ngrok-free.dev"; 
         let currentPhone = "";
 
-        // Fetch live stats every 10 seconds
-        async function fetchStats() {
+        // Live status check
+        async function checkStatus() {
             try {
-                const res = await fetch(API_URL + "/api/stats", {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
-                });
+                const res = await fetch(API_URL + "/api/stats", { headers: { 'ngrok-skip-browser-warning': 'true' } });
                 const data = await res.json();
-                if(data.connected !== undefined) {
-                    document.getElementById('liveCount').innerText = data.connected;
+                if(data.status === "online") {
+                    document.getElementById('statusText').innerText = `${data.connected} Bots Online`;
                 }
-            } catch(e) {}
+            } catch(e) {
+                document.getElementById('statusText').innerText = "Server Offline";
+                document.querySelector('.status-dot').style.background = "#ef4444";
+                document.querySelector('.status-dot').style.boxShadow = "0 0 10px #ef4444";
+            }
         }
-        setInterval(fetchStats, 10000);
-        fetchStats();
+        setInterval(checkStatus, 15000);
+        checkStatus();
 
         async function requestCode() {
             const phone = document.getElementById('phone').value.replace(/[^0-9]/g, '');
@@ -131,6 +301,7 @@
             const resultBox = document.getElementById('resultBox');
             const manageBox = document.getElementById('manageBox');
             const inputArea = document.getElementById('input-area');
+            const cardTitle = document.getElementById('cardTitle');
 
             if (phone.length < 10) {
                 showError("Please enter a valid number with country code.");
@@ -161,10 +332,10 @@
                     inputArea.style.display = 'none';
                     
                     if (data.alreadyPaired) {
-                        document.getElementById('cardTitle').innerText = "Manage Bot";
+                        cardTitle.innerText = "Manage Session";
                         manageBox.style.display = 'block';
                     } else {
-                        document.getElementById('cardTitle').innerText = "Link Device";
+                        cardTitle.innerText = "Your Code";
                         resultBox.style.display = 'block';
                         document.getElementById('codeDisplay').innerText = data.code;
                     }
@@ -173,13 +344,13 @@
                     resetButton();
                 }
             } catch (err) {
-                showError("Network Error. Is the bot online?");
+                showError("Network Error. Server might be restarting.");
                 resetButton();
             }
         }
 
         async function disconnectBot() {
-            if(!confirm("Are you sure you want to disconnect this bot? The session will be deleted.")) return;
+            if(!confirm("Are you sure? This will unlink your WhatsApp and delete the session.")) return;
             
             const btn = document.getElementById('disconnectBtn');
             btn.innerText = "Disconnecting...";
@@ -195,11 +366,11 @@
                     body: JSON.stringify({ phoneNumber: currentPhone })
                 });
                 
-                alert("Bot disconnected successfully.");
+                alert("Session disconnected successfully.");
                 window.location.reload(); 
             } catch (e) {
-                alert("Failed to disconnect. Network error.");
-                btn.innerText = "Disconnect Bot";
+                alert("Failed to disconnect. Try again.");
+                btn.innerText = "Disconnect Session";
                 btn.disabled = false;
             }
         }
