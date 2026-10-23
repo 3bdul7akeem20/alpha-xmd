@@ -7,14 +7,12 @@ const chalk = require("chalk");
 const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 
-// 🔴 NGROK CREDENTIALS
 const NGROK_AUTHTOKEN = "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
 const NGROK_DOMAIN = "itinerary-splashy-flyer.ngrok-free.dev"; 
 
 const app = express();
 app.use(express.json());
 
-// ✅ FIX: Allow the specific Ngrok header in CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning');
@@ -106,6 +104,17 @@ async function startBot(phoneNumber) {
   attachHandlers(sock, phoneNumber);
 }
 
+// ================= API ENDPOINTS =================
+
+// 1. Get Live Stats
+app.get("/api/stats", (req, res) => {
+  res.json({ 
+    connected: activeSockets.size,
+    status: "online" 
+  });
+});
+
+// 2. Pairing Endpoint
 app.post("/api/pair", async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
@@ -170,11 +179,10 @@ app.post("/api/pair", async (req, res) => {
 
     if (connection === "close") {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      // ✅ FIX: 515 means pairing succeeded. Start the real bot and stop the temp socket.
       if (code === 515 || code === baileys.DisconnectReason?.restartRequired) {
         console.log(`[${phoneNumber}] 515 Restart. Pairing successful. Starting bot...`);
         try { tempSock.end(undefined); } catch (e) {}
-        setTimeout(() => startBot(phoneNumber), 5000); // Give time for session to save
+        setTimeout(() => startBot(phoneNumber), 5000); 
       } else if (!responded) {
         responded = true;
         res.status(500).json({ success: false, error: `Closed (${code})` });
@@ -184,6 +192,34 @@ app.post("/api/pair", async (req, res) => {
     }
   });
 });
+
+// 3. Disconnect Endpoint
+app.post("/api/disconnect", async (req, res) => {
+  const { phoneNumber } = req.body;
+  const sessionPath = path.join(sessionsDir, phoneNumber);
+
+  try {
+    if (activeSockets.has(phoneNumber)) {
+      const sock = activeSockets.get(phoneNumber);
+      await sock.logout(); 
+      activeSockets.delete(phoneNumber);
+    }
+    
+    if (fs.existsSync(sessionPath)) {
+      fs.rmSync(sessionPath, { recursive: true, force: true });
+    }
+
+    res.json({ success: true, message: "Bot disconnected and session deleted." });
+  } catch (err) {
+    try {
+      if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+      activeSockets.delete(phoneNumber);
+    } catch(e) {}
+    
+    res.json({ success: true, message: "Session deleted locally." });
+  }
+});
+
 
 // ================= STARTUP =================
 (async () => {
