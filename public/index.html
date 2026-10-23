@@ -117,9 +117,8 @@
     </div>
 
     <script>
-        // ⚠️ IMPORTANT: Make sure your URL ends in .loca.lt, not .local.lt
-        // Paste the exact URL your Pterodactyl panel gave you.
-        const API_URL = "https://deep-seas-shop.loca.lt"; 
+        // Your permanent Ngrok URL
+        const API_URL = "https://itinerary-splashy-flyer.ngrok-free.dev"; 
 
         async function requestCode() {
             const number = document.getElementById('number').value.replace(/[^0-9]/g, '');
@@ -142,7 +141,7 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Bypass-Tunnel-Reminder': 'true' // 👈 Bypasses localtunnel warning page
+                        'Bypass-Tunnel-Reminder': 'true' // Bypasses the Ngrok warning page
                     },
                     body: JSON.stringify({ phoneNumber: number })
                 });
