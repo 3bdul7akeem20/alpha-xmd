@@ -744,19 +744,17 @@ ${config.settings.footer}
             const rawNumber = args[0].replace(/[^0-9]/g, "");
             if (rawNumber.length < 10) return reply("❌ Invalid phone number.");
 
-            reply(`🔐 Requesting pairing code for +${rawNumber}...`);
+            reply(`🔐 Requesting pairing code for +${rawNumber}... Please wait.`);
 
             try {
                 const { makeWASocket, Browsers, useMultiFileAuthState, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
                 const pino = require('pino');
-                const os = require('os');
-                const path = require('path');
-                const fs = require('fs');
+                
+                // 🎯 FIX: Save directly into the main 'sessions' folder
+                const sessionPath = path.join(process.cwd(), 'sessions', rawNumber);
+                if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
-                const tempDir = path.join(os.tmpdir(), `pair_${rawNumber}_${Date.now()}`);
-                fs.mkdirSync(tempDir, { recursive: true });
-
-                const { state } = await useMultiFileAuthState(tempDir);
+                const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
                 const { version } = await fetchLatestBaileysVersion();
 
                 const tempSock = makeWASocket({
@@ -765,51 +763,67 @@ ${config.settings.footer}
                     browser: Browsers.macOS('Chrome'),
                     logger: pino({ level: 'silent' }),
                     printQRInTerminal: false,
-                    connectTimeoutMs: 30000
+                    connectTimeoutMs: 60000
                 });
 
-                let pairingCode = null;
-                let settled = false;
+                tempSock.ev.on('creds.update', saveCreds);
+                let responded = false;
 
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        if (!settled) { settled = true; reject(new Error("Pairing timed out.")); }
-                    }, 45000);
+                tempSock.ev.on('connection.update', async (update) => {
+                    const { connection } = update;
 
-                    tempSock.ev.on('connection.update', async (update) => {
-                        const { connection } = update;
-                        if (connection === 'connecting' && !settled) {
-                            settled = true;
-                            clearTimeout(timeout);
+                    // 1. Generate code
+                    if (connection === 'connecting' && !responded) {
+                        setTimeout(async () => {
                             try {
-                                pairingCode = await tempSock.requestPairingCode(rawNumber);
-                                resolve();
-                            } catch (err) { reject(err); }
-                        }
-                        if (connection === 'close' && !settled) {
-                            settled = true;
-                            clearTimeout(timeout);
-                            reject(new Error("Connection closed"));
-                        }
-                    });
+                                const code = await tempSock.requestPairingCode(rawNumber);
+                                const formatted = code.match(/.{1,4}/g)?.join("-") || code;
+                                if (!responded) {
+                                    responded = true;
+                                    reply(
+                                        `✅ *Pairing Code Ready*\n\n` +
+                                        `📞 *Number:* +${rawNumber}\n` +
+                                        `🔢 *Code:* *${formatted}*\n\n` +
+                                        `⏱️ Expires in 60 seconds.\n` +
+                                        `📱 Open WhatsApp → Linked devices → Link with phone number → Enter this code.`
+                                    );
+                                }
+                            } catch (err) {
+                                if (!responded) {
+                                    responded = true;
+                                    reply(`❌ Pairing failed: ${err.message || String(err)}`);
+                                    tempSock.end();
+                                }
+                            }
+                        }, 3000);
+                    }
+
+                    // 2. Successfully linked
+                    if (connection === 'open') {
+                        reply(`🎉 Successfully connected +${rawNumber}!\n\nYour bot is now starting... You will receive a startup message shortly.`);
+                        
+                        setTimeout(() => {
+                            try { tempSock.end(); } catch(e) {} // Close temp socket
+                            
+                            // 🎯 Start the bot seamlessly from index.js
+                            if (global.startBot) {
+                                global.startBot(rawNumber);
+                            } else {
+                                console.log("⚠️ global.startBot is not defined in index.js!");
+                            }
+                        }, 3000);
+                    }
+
+                    // 3. Timed out/Closed
+                    if (connection === 'close' && !responded) {
+                        responded = true;
+                        reply(`❌ Pairing timed out or closed. Please try again.`);
+                    }
                 });
-
-                tempSock.end();
-                fs.rmSync(tempDir, { recursive: true, force: true });
-
-                if (!pairingCode) throw new Error("No pairing code obtained");
-
-                reply(
-                    `✅ *Pairing Code Ready*\n\n` +
-                    `📞 *Number:* +${rawNumber}\n` +
-                    `🔢 *Code:* *${pairingCode}*\n\n` +
-                    `⏱️ Expires in 60 seconds.\n` +
-                    `📱 Open WhatsApp → Linked devices → Link with phone number → Enter this code.`
-                );
 
             } catch (err) {
                 console.error('Pair error:', err);
-                reply(`❌ Pairing failed: ${err.message || String(err)}`);
+                reply(`❌ Error: ${err.message || String(err)}`);
             }
         }
     }
