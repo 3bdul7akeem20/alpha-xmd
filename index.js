@@ -8,8 +8,13 @@ const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 const config = () => require("./settings/config");
 
+// Hide annoying Baileys errors
 const _origErr = console.error;
-console.error = (...a) => { const m = a.join(" "); if (m.includes("Bad MAC") || m.includes("Session error") || m.includes("verifyMAC") || m.includes("Failed to decrypt")) return; _origErr(...a); };
+console.error = (...a) => {
+  const m = a.join(" ");
+  if (m.includes("Bad MAC") || m.includes("Session error") || m.includes("verifyMAC") || m.includes("Failed to decrypt") || m.includes("decryptWithSessions")) return;
+  _origErr(...a);
+};
 
 const NGROK_AUTHTOKEN = process.env.NGROK_AUTHTOKEN || "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
 const NGROK_DOMAIN = process.env.NGROK_DOMAIN || "itinerary-splashy-flyer.ngrok-free.dev"; 
@@ -64,13 +69,14 @@ function attachHandlers(sock, phoneNumber) {
         const remote = mek.key?.remoteJid;
         if (remote === "status@broadcast") { if (autoStatusHandler.handleStatusUpdate) await autoStatusHandler.handleStatusUpdate(sock, { messages: [mek] }); continue; }
         if (!mek.message) continue;
-        if (remote === channelJid) continue;
+        
         if (mek.key.fromMe) {
           const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
           if (!txt.startsWith(globalSettings.prefix)) continue;
         }
+        
         const m = await smsg(sock, mek);
-        m.prefix = globalSettings.prefix; // Pass prefix to message handler
+        m.prefix = globalSettings.prefix;
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
 
         if (m.isGroup) {
@@ -81,19 +87,21 @@ function attachHandlers(sock, phoneNumber) {
             m.isBotAdmin = metadata.participants.some(p => sock.decodeJid(p.id) === sock.decodeJid(sock.user?.id) && p.admin);
           } catch { m.isAdmin = false; m.isBotAdmin = false; }
         }
+        
         if (globalSettings.autoread) { try { await sock.readMessages([mek.key]); } catch {} }
         if (globalSettings.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
         if (globalSettings.autoreact) { try { await sock.sendMessage(m.chat, { react: { text: "🔥", key: mek.key } }); } catch {} }
+        
         await messageHandler(sock, m);
       }
     } catch (err) { console.log("⚠️ Error:", err.message); }
   });
 
+  // Anti-Delete
   sock.ev.on("messages.update", async updates => {
     try {
       const globalSettings = loadGlobalSettings();
       const ad = globalSettings.antidelete || { enabled: false };
-      const ownerJid = (config().owner?.[0] || "").replace(/[^0-9]/g, "") + "@s.whatsapp.net";
       for (const update of updates) {
         const oldMsg = store.get(update.key.id);
         if (!oldMsg) continue;
@@ -113,24 +121,36 @@ async function startBot(phoneNumber) {
   if (activeSockets.has(phoneNumber)) return; 
   const sessionPath = path.join(sessionsDir, phoneNumber);
   if (!fs.existsSync(path.join(sessionPath, "creds.json"))) return; 
+  
+  console.log(chalk.blue(`🤖 Starting bot for ${phoneNumber}`));
+  
   try {
     const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
     const { version } = await baileys.fetchLatestBaileysVersion();
     const sock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: ["Ubuntu", "Chrome", "20.0.04"] });
+    
     sock.decodeJid = jid => { if (!jid) return jid; if (/:\d+@/gi.test(jid)) { const d = baileys.jidDecode(jid) || {}; return d.user && d.server ? `${d.user}@${d.server}` : jid; } return jid; };
     sock.ev.on("creds.update", saveCreds);
     activeSockets.set(phoneNumber, sock);
+    
     sock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect } = update;
-      if (connection === "open") { attachHandlers(sock, phoneNumber); }
+      if (connection === "open") { 
+        console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
+        attachHandlers(sock, phoneNumber); 
+      }
       if (connection === "close") {
         activeSockets.delete(phoneNumber);
         const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-        if (code === 401) fs.rmSync(sessionPath, { recursive: true, force: true });
-        else setTimeout(() => startBot(phoneNumber), 10000);
+        if (code === 401) {
+          console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
+          fs.rmSync(sessionPath, { recursive: true, force: true });
+        } else {
+          setTimeout(() => startBot(phoneNumber), 10000);
+        }
       }
     });
-  } catch (error) {}
+  } catch (error) { console.log(chalk.red(`❌ Failed to start ${phoneNumber}: ${error.message}`)); }
 }
 
 // ================= API ENDPOINTS =================
@@ -149,8 +169,10 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
     const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
     const { version } = await baileys.fetchLatestBaileysVersion();
     const tempSock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: baileys.Browsers.ubuntu("Chrome") });
+    
     tempSock.ev.on("creds.update", saveCreds);
     let responded = false;
+    
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect } = update;
       if (connection === "connecting" && !responded) {
@@ -167,7 +189,6 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
   } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
 });
 
-// 🎯 NEW: QR CODE ENDPOINT
 app.post("/api/qr", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber) return res.status(400).json({ success: false, error: "Invalid number." });
@@ -179,8 +200,10 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
     const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
     const { version } = await baileys.fetchLatestBaileysVersion();
     const tempSock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: baileys.Browsers.ubuntu("Chrome") });
+    
     tempSock.ev.on("creds.update", saveCreds);
     let responded = false;
+    
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, qr } = update;
       if (qr && !responded) { responded = true; res.json({ success: true, phoneNumber, qr }); }
@@ -214,14 +237,26 @@ app.post("/api/settings", (req, res) => {
   res.json({ success: true });
 });
 
+// ================= STARTUP =================
 (async () => {
+  console.log("🚀 Starting Alpha Bot Server...");
   baileys = await import("@whiskeysockets/baileys");
   const PORT = process.env.PORT || 3000;
+  
   app.listen(PORT, async () => {
+    console.log(`🌐 Internal API running on port ${PORT}`);
     try {
       const ngrok = require("@ngrok/ngrok");
       await ngrok.forward({ addr: PORT, authtoken: NGROK_AUTHTOKEN, domain: NGROK_DOMAIN });
-    } catch (err) {}
-    if (fs.existsSync(sessionsDir)) { for (const dir of fs.readdirSync(sessionsDir)) { if (/^\d{10,15}$/.test(dir)) await startBot(dir); } }
+      console.log(`✅ PUBLIC API: https://${NGROK_DOMAIN}`);
+    } catch (err) { console.log("⚠️ Ngrok failed:", err.message); }
+
+    console.log("📂 Loading saved bots...");
+    if (fs.existsSync(sessionsDir)) { 
+      for (const dir of fs.readdirSync(sessionsDir)) { 
+        if (/^\d{10,15}$/.test(dir)) await startBot(dir); 
+      } 
+    }
+    console.log("✅ All loaded and ready!");
   });
 })();
