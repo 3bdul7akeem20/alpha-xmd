@@ -32,25 +32,29 @@ app.use((req, res, next) => {
 const sessionsDir = path.join(__dirname, "sessions");
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 const activeSockets = new Map();
-const store = new Map();
+const store = new Map(); // For Anti-Delete
 let baileys;
 
+// Plugins & Handlers
 let autoStatusHandler; try { autoStatusHandler = require("./plugins/autostatus"); } catch (e) { autoStatusHandler = { handleStatusUpdate: () => {} }; }
 let messageHandler; try { messageHandler = require("./message"); } catch (e) { messageHandler = async () => {}; }
 
+const funnyDeleted = ["🕵️‍♂️ Someone deleted a message, but I saved it! 🛡️", "📝 Deleted message rescued:"];
+
+// Rate Limiter
 const rateLimits = new Map();
 function rateLimiter(req, res, next) {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const now = Date.now();
   if (!rateLimits.has(ip)) rateLimits.set(ip, []);
-  const requests = rateLimits.get(ip).filter(time => now - time < 3600000); // 1 hr
+  const requests = rateLimits.get(ip).filter(time => now - time < 3600000);
   if (requests.length >= 10) return res.status(429).json({ success: false, error: "Too many requests." });
   requests.push(now); rateLimits.set(ip, requests);
   if (requests.length === 0) rateLimits.delete(ip); 
   next();
 }
 
-// ================= BOT HANDLERS =================
+// ================= BOT HANDLERS (MERGED FEATURES) =================
 function attachHandlers(sock, phoneNumber) {
   const channelJid = `${config().newsletter.id}@newsletter`;
   const sessionSettingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
@@ -65,20 +69,55 @@ function attachHandlers(sock, phoneNumber) {
     try {
       if (!chatUpdate.messages?.length) return;
       const globalSettings = loadGlobalSettings(); 
+
       for (const mek of chatUpdate.messages) {
         const remote = mek.key?.remoteJid;
-        if (remote === "status@broadcast") { if (autoStatusHandler.handleStatusUpdate) await autoStatusHandler.handleStatusUpdate(sock, { messages: [mek] }); continue; }
-        if (!mek.message) continue;
         
+        // AutoStatus
+        if (remote === "status@broadcast") {
+          if (autoStatusHandler.handleStatusUpdate) await autoStatusHandler.handleStatusUpdate(sock, { messages: [mek] });
+          continue;
+        }
+        if (!mek.message) continue;
+
+        // Channel Reactions
+        if (remote === channelJid) {
+          const cr = globalSettings.chreact || { enabled: false, emojis: ["💬"] };
+          if (cr.enabled) {
+            for (const emoji of cr.emojis || []) {
+              try {
+                if (sock.newsletterReact) await sock.newsletterReact(channelJid, mek.key.id, emoji);
+                await new Promise(r => setTimeout(r, 1000));
+              } catch {}
+            }
+          }
+          continue;
+        }
+
+        // Fancy Terminal Logger
+        try {
+          const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
+          const shortText = msgText.length > 60 ? msgText.substring(0, 60) + '...' : msgText;
+          const senderNumber = mek.key.participant?.split('@')[0] || mek.key.remoteJid?.split('@')[0] || 'unknown';
+          console.log(`\n${chalk.green('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓')}`);
+          console.log(`${chalk.magenta('┃')} ${chalk.magenta.bold('ALPHA-XMD LOGGER')} [${phoneNumber}]`);
+          console.log(`${chalk.magenta('┃')} ${chalk.cyan('Sender:')} ${chalk.green(senderNumber)}`);
+          console.log(`${chalk.magenta('┃')} ${chalk.cyan('Message:')} ${chalk.white(shortText)}`);
+          console.log(`${chalk.green('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛')}`);
+        } catch {}
+
         if (mek.key.fromMe) {
           const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
           if (!txt.startsWith(globalSettings.prefix)) continue;
         }
-        
+
         const m = await smsg(sock, mek);
         m.prefix = globalSettings.prefix;
+        
+        // Store for Anti-Delete/Edit
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
 
+        // Admin Check
         if (m.isGroup) {
           try {
             const metadata = await sock.groupMetadata(m.chat);
@@ -87,36 +126,107 @@ function attachHandlers(sock, phoneNumber) {
             m.isBotAdmin = metadata.participants.some(p => sock.decodeJid(p.id) === sock.decodeJid(sock.user?.id) && p.admin);
           } catch { m.isAdmin = false; m.isBotAdmin = false; }
         }
-        
+
+        // Auto Features
         if (globalSettings.autoread) { try { await sock.readMessages([mek.key]); } catch {} }
         if (globalSettings.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
-        if (globalSettings.autoreact) { try { await sock.sendMessage(m.chat, { react: { text: "🔥", key: mek.key } }); } catch {} }
-        
+        if (globalSettings.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
+        if (globalSettings.autoreact) {
+          const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
+          if (!txt.startsWith(globalSettings.prefix)) {
+            const emojis = ["🔥", "😂", "😍", "😎", "🤖", "⚡", "💯", "👀", "🥶", "😈"];
+            try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: mek.key } }); } catch {}
+          }
+        }
+
         await messageHandler(sock, m);
       }
-    } catch (err) { console.log("⚠️ Error:", err.message); }
+    } catch (err) { console.log("⚠️ Message handler:", err.message); }
   });
 
-  // Anti-Delete
+  // Anti-Delete & Anti-Edit
   sock.ev.on("messages.update", async updates => {
     try {
       const globalSettings = loadGlobalSettings();
-      const ad = globalSettings.antidelete || { enabled: false };
+      const ad = globalSettings.antidelete || { enabled: false, mode: "chat", style: "fancy", react: true };
+      const ownerNumber = (config().owner?.[0] || "").replace(/[^0-9]/g, "");
+      const ownerJid = ownerNumber ? `${ownerNumber}@s.whatsapp.net` : null;
+
       for (const update of updates) {
         const oldMsg = store.get(update.key.id);
         if (!oldMsg) continue;
+
         if (update.update?.message === null && ad.enabled) {
           const chat = update.key.remoteJid; if (!chat) continue;
-          const text = `╭───〔 👁️‍🗨️ ANTIDELETE 〕───⬣\n│ 👤 @${oldMsg.sender.split("@")[0]}\n│ 🗑️: ${oldMsg.text || "Media"}\n╰──`;
-          await sock.sendMessage(chat, { text, mentions: [oldMsg.sender] });
+          const isGroup = chat.endsWith("@g.us");
+          const sender = oldMsg.sender || update.key.participant || chat;
+          const senderNumber = sender.split("@")[0].replace(/[^0-9]/g, "");
+          const privateName = oldMsg.pushName?.trim() || senderNumber;
+          let chatName = "Private Chat";
+          if (isGroup) { try { const gm = await sock.groupMetadata(chat); chatName = gm.subject; } catch {} }
+          const now = new Date();
+          const deleted = (oldMsg.text || "Media").replace(/\n/g, "\n│ │ ");
+          
+          let text = ad.style === "fancy" 
+            ? `╭───〔 👁️‍🗨️ ANTIDELETE 〕───⬣\n│\n│ 👤 @${senderNumber}\n│ 📍 ${chatName}\n│ 🕒 ${now.toLocaleTimeString()}\n│ 📅 ${now.toLocaleDateString()}\n│\n│ 🗑️:\n│ ┌─\n│ │ ${deleted}\n│ └─\n│ 🛡️ Alpha\n╰──`
+            : `${funnyDeleted[0]}\n\n${oldMsg.text || "Media"}`;
+
+          const destinations = [];
+          if (ad.mode === "chat" || ad.mode === "both") destinations.push(chat);
+          if ((ad.mode === "owner" || ad.mode === "both") && ownerJid) destinations.push(ownerJid);
+
+          for (const dest of destinations) {
+            const opts = {};
+            if (isGroup && ad.style === "fancy" && dest === chat) opts.mentions = [sender];
+            if (ad.style === "fancy") {
+              await sock.sendMessage(dest, { text, contextInfo: { forwardingScore: 999, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: channelJid, newsletterName: config().newsletter.name } }, ...opts });
+            } else { await sock.sendMessage(dest, { text, ...opts }); }
+            if (ad.react && dest === chat) { try { await sock.sendMessage(dest, { react: { text: "👀", key: update.key } }); } catch {} }
+          }
+        }
+
+        if (globalSettings.antiedit && update.update?.message) {
+          let newText = "";
+          try { const msg = update.update.message; const type = Object.keys(msg)[0]; newText = msg[type]?.text || msg[type]?.caption || ""; } catch {}
+          if (oldMsg.text && newText && oldMsg.text !== newText) {
+            try { await sock.sendMessage(update.key.remoteJid, { text: `✏️ Edited.\n\n📌 Old: ${oldMsg.text}\n🆕 New: ${newText}` }); } catch {}
+          }
         }
       }
     } catch {}
   });
 
+  // Welcome / Goodbye
+  sock.ev.on("group-participants.update", async update => {
+    try {
+      const { id, participants, action } = update;
+      let gs = { welcome: false, welcomeMsg: "🌟 Welcome @user!", goodbye: false, goodbyeMsg: "🚶‍♂️ @user left." };
+      try { const all = JSON.parse(fs.readFileSync(path.join(__dirname, "database/groupSettings.json"), "utf8")); gs = all[id] || gs; } catch {}
+      
+      if (action === "add" && gs.welcome) {
+        for (const user of participants) await sock.sendMessage(id, { text: gs.welcomeMsg.replace(/@user/g, `@${user.split("@")[0]}`), mentions: [user] });
+      }
+      if (action === "remove" && gs.goodbye) {
+        for (const user of participants) await sock.sendMessage(id, { text: gs.goodbyeMsg.replace(/@user/g, `@${user.split("@")[0]}`), mentions: [user] });
+      }
+    } catch {}
+  });
+
+  // Follow Channel & Startup Message
+  setTimeout(async () => { try { await sock.newsletterFollow(channelJid); } catch {} }, 3000);
+  setTimeout(async () => {
+    try {
+      const botName = config().settings?.title || "Alpha Bot";
+      const text = `╭───〔 🤖 ${botName} 〕───⬣\n\n✅ Bot Online\n👑 Owner: Alpha\n📞 Contact: wa.me/263786641436\n📂 Repo: https://github.com/Alexio11-09/alpha-xmd\n📢 Channel: https://whatsapp.com/channel/${config().newsletter.id}\n\n🔥 Ready to use.`;
+      await sock.sendMessage(sock.user.id, { text, contextInfo: { forwardingScore: 999, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: channelJid, newsletterName: config().newsletter.name } } });
+    } catch {}
+  }, 4000);
+
+  // Presence Loop
   setInterval(() => { if (sock.user) sock.sendPresenceUpdate("available").catch(() => {}); }, 20000);
 }
 
+// ================= SESSION STARTER =================
 async function startBot(phoneNumber) {
   if (activeSockets.has(phoneNumber)) return; 
   const sessionPath = path.join(sessionsDir, phoneNumber);
@@ -152,6 +262,9 @@ async function startBot(phoneNumber) {
     });
   } catch (error) { console.log(chalk.red(`❌ Failed to start ${phoneNumber}: ${error.message}`)); }
 }
+
+// 🎯 CRUCIAL FIX: Expose startBot globally so the plugin can use it
+global.startBot = startBot;
 
 // ================= API ENDPOINTS =================
 app.get("/api/stats", (req, res) => res.json({ connected: activeSockets.size, status: "online" }));
