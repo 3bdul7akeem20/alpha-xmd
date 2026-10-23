@@ -750,7 +750,6 @@ ${config.settings.footer}
                 const { makeWASocket, Browsers, useMultiFileAuthState, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
                 const pino = require('pino');
                 
-                // 🎯 FIX: Save directly into the main 'sessions' folder
                 const sessionPath = path.join(process.cwd(), 'sessions', rawNumber);
                 if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
@@ -772,7 +771,6 @@ ${config.settings.footer}
                 tempSock.ev.on('connection.update', async (update) => {
                     const { connection } = update;
 
-                    // 1. Generate code
                     if (connection === 'connecting' && !responded) {
                         setTimeout(async () => {
                             try {
@@ -798,23 +796,19 @@ ${config.settings.footer}
                         }, 3000);
                     }
 
-                    // 2. Successfully linked
                     if (connection === 'open') {
                         reply(`🎉 Successfully connected +${rawNumber}!\n\nYour bot is now starting... You will receive a startup message shortly.`);
                         
+                        // 🎯 FIX: Close temp socket, wait, then start main bot
                         setTimeout(() => {
-                            try { tempSock.end(); } catch(e) {} // Close temp socket
-                            
-                            // 🎯 Start the bot seamlessly from index.js
-                            if (global.startBot) {
-                                global.startBot(rawNumber);
-                            } else {
-                                console.log("⚠️ global.startBot is not defined in index.js!");
-                            }
-                        }, 3000);
+                            try { tempSock.end(undefined); } catch(e) {}
+                            setTimeout(() => {
+                                if (global.startBot) global.startBot(rawNumber);
+                                else reply("⚠️ Internal error: startBot not found.");
+                            }, 3000);
+                        }, 5000);
                     }
 
-                    // 3. Timed out/Closed
                     if (connection === 'close' && !responded) {
                         responded = true;
                         reply(`❌ Pairing timed out or closed. Please try again.`);
