@@ -14,78 +14,23 @@
             --text-muted: #6b7280;
         }
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { 
-            background: linear-gradient(135deg, #fdf4ff 0%, #f3e8ff 100%); 
-            color: var(--text); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px; 
-        }
+        body { background: linear-gradient(135deg, #fdf4ff 0%, #f3e8ff 100%); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .container { width: 100%; max-width: 420px; text-align: center; }
         .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 5px; color: #111827; }
         .header p { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
-        
-        .card { 
-            background: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 25px rgba(192, 38, 211, 0.1); 
-            border: 1px solid rgba(192, 38, 211, 0.2);
-            text-align: left;
-        }
-        
+        .card { background: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(192, 38, 211, 0.1); border: 1px solid rgba(192, 38, 211, 0.2); text-align: left; }
         .card-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .card-title .icon { background: #fce7f3; color: var(--primary); padding: 6px; border-radius: 8px; display: flex; }
-        
-        input { 
-            width: 100%; 
-            padding: 14px; 
-            margin-bottom: 15px; 
-            border: 1px solid #e5e7eb; 
-            border-radius: 10px; 
-            background: #f9fafb; 
-            color: #111827; 
-            font-size: 15px;
-            outline: none;
-            transition: 0.2s;
-        }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; color: #111827; font-size: 15px; outline: none; transition: 0.2s; }
         input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.1); }
-        
-        button { 
-            width: 100%; 
-            padding: 14px; 
-            background: linear-gradient(to right, #d946ef, #c026d3); 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            font-weight: 600; 
-            font-size: 15px;
-            cursor: pointer; 
-            transition: 0.3s; 
-        }
+        button { width: 100%; padding: 14px; background: linear-gradient(to right, #d946ef, #c026d3); color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: 0.3s; }
         button:hover { opacity: 0.9; }
         button:disabled { background: #d1d5db; cursor: not-allowed; }
-
         .status-box { margin-top: 20px; display: none; }
         .status-connected { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 20px; text-align: center; }
         .status-connected h3 { color: #065f46; margin: 10px 0 5px 0; font-size: 18px; }
         .status-connected p { color: #047857; font-size: 13px; margin-bottom: 15px; }
-        
-        .code-display { 
-            background: #fdf4ff; 
-            border: 2px dashed var(--primary); 
-            color: var(--primary); 
-            font-size: 24px; 
-            font-weight: 800; 
-            letter-spacing: 2px; 
-            padding: 15px; 
-            border-radius: 10px; 
-            margin: 10px 0;
-        }
-        
+        .code-display { background: #fdf4ff; border: 2px dashed var(--primary); color: var(--primary); font-size: 24px; font-weight: 800; letter-spacing: 2px; padding: 15px; border-radius: 10px; margin: 10px 0; }
         .error-box { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; padding: 12px; border-radius: 8px; font-size: 13px; display: none; margin-top: 15px; }
     </style>
 </head>
@@ -117,7 +62,6 @@
     </div>
 
     <script>
-        // Your permanent Ngrok URL
         const API_URL = "https://itinerary-splashy-flyer.ngrok-free.dev"; 
 
         async function requestCode() {
@@ -141,7 +85,8 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Bypass-Tunnel-Reminder': 'true' // Bypasses the Ngrok warning page
+                        // ✅ FIX: Correct header to bypass Ngrok warning
+                        'ngrok-skip-browser-warning': 'true' 
                     },
                     body: JSON.stringify({ phoneNumber: number })
                 });
