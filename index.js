@@ -7,10 +7,13 @@ const chalk = require("chalk");
 const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 
+// 🔴 NGROK CREDENTIALS
+const NGROK_AUTHTOKEN = "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
+const NGROK_DOMAIN = "itinerary-splashy-flyer.ngrok-free.dev"; 
+
 const app = express();
 app.use(express.json());
 
-// Enable CORS so your Vercel website can talk to this API
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -18,41 +21,33 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve the website locally if needed (though Vercel handles the public site)
 app.use(express.static(path.join(__dirname, "public")));
 
-// Ensure sessions folder exists
 const sessionsDir = path.join(__dirname, "sessions");
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
 const activeSockets = new Map();
 let baileys;
 
-// ================= MESSAGE LOGGER & HANDLER =================
 function attachHandlers(sock, phoneNumber) {
   sock.ev.on("messages.upsert", async (chatUpdate) => {
     try {
       const messages = chatUpdate.messages;
       if (!messages?.length) return;
-      
       for (const mek of messages) {
         const remote = mek.key?.remoteJid;
         if (remote === "status@broadcast" || !mek.message) continue;
         
-        // Simple Console Logger
         try {
           const msgType = Object.keys(mek.message || {})[0] || 'unknown';
           const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
           console.log(chalk.green(`[${phoneNumber}]`) + ` ${mek.key.fromMe ? '⬅️' : '➡️'} ${msgType}: ${msgText.substring(0,30)}`);
         } catch (e) {}
 
-        // Skip own non-command messages
         if (mek.key.fromMe) {
           const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
           if (!txt.startsWith(".")) continue;
         }
-
-        // Pass to your message handler (commands)
         const m = await smsg(sock, mek);
         try { 
           const handler = require("./message"); 
@@ -67,12 +62,10 @@ function attachHandlers(sock, phoneNumber) {
   });
 }
 
-// ================= START INDIVIDUAL USER BOT =================
 async function startBot(phoneNumber) {
-  if (activeSockets.has(phoneNumber)) return; // Already running
-  
+  if (activeSockets.has(phoneNumber)) return; 
   const sessionPath = path.join(sessionsDir, phoneNumber);
-  if (!fs.existsSync(path.join(sessionPath, "creds.json"))) return; // No session saved
+  if (!fs.existsSync(path.join(sessionPath, "creds.json"))) return; 
 
   console.log(chalk.blue(`🤖 Starting bot for ${phoneNumber}`));
   
@@ -92,15 +85,12 @@ async function startBot(phoneNumber) {
 
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
-    
     if (connection === "open") {
       console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
     }
-    
     if (connection === "close") {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
       activeSockets.delete(phoneNumber);
-      
       if (code === 401) {
         console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
         fs.rmSync(sessionPath, { recursive: true, force: true });
@@ -114,7 +104,6 @@ async function startBot(phoneNumber) {
   attachHandlers(sock, phoneNumber);
 }
 
-// ================= PAIRING API ENDPOINT =================
 app.post("/api/pair", async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
@@ -123,18 +112,15 @@ app.post("/api/pair", async (req, res) => {
 
   const sessionPath = path.join(sessionsDir, phoneNumber);
   
-  // 1. If bot is already running
   if (activeSockets.has(phoneNumber)) {
     return res.json({ success: true, alreadyPaired: true, message: "Bot is already running!" });
   }
 
-  // 2. If session exists but bot isn't running (e.g., after a restart)
   if (fs.existsSync(path.join(sessionPath, "creds.json"))) {
     startBot(phoneNumber);
     return res.json({ success: true, alreadyPaired: true, message: "Session found. Starting bot!" });
   }
 
-  // 3. Generate new pairing code
   console.log(`[${phoneNumber}] New pairing request...`);
   fs.mkdirSync(sessionPath, { recursive: true });
   
@@ -164,7 +150,6 @@ app.post("/api/pair", async (req, res) => {
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect } = update;
 
-      // Request code when connecting
       if (connection === "connecting" && !responded) {
         setTimeout(async () => {
           try {
@@ -179,13 +164,11 @@ app.post("/api/pair", async (req, res) => {
         }, 3000);
       }
 
-      // When user successfully links the device
       if (connection === "open") {
         console.log(`[${phoneNumber}] 🎉 Linked successfully!`);
-        setTimeout(() => startBot(phoneNumber), 2000); // Start the real bot
+        setTimeout(() => startBot(phoneNumber), 2000);
       }
 
-      // Handle disconnects during pairing (515 restart is normal)
       if (connection === "close") {
         const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
         if (code === 515 || code === baileys.DisconnectReason?.restartRequired) {
@@ -208,30 +191,28 @@ app.post("/api/pair", async (req, res) => {
   
   const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
   
-  // Start the internal Express server
   app.listen(PORT, async () => {
     console.log(`🌐 Internal API running on port ${PORT}`);
     
-    // 🌐 START THE PUBLIC TUNNEL
+    // 🎯 START NGROK TUNNEL
     try {
-      const localtunnel = require('localtunnel');
-      console.log("⏳ Creating public tunnel... Please wait.");
+      const ngrok = require("@ngrok/ngrok");
+      console.log("⏳ Connecting to Ngrok...");
       
-      const tunnel = await localtunnel({ port: PORT });
-      console.log(`\n======================================================`);
-      console.log(`✅ PUBLIC API URL: ${tunnel.url}`);
-      console.log(`======================================================\n`);
-      console.log(`👉 COPY THIS URL AND PASTE IT INTO YOUR VERCEL website code (index.html)`);
-      
-      tunnel.on('close', () => {
-        console.log("❌ Tunnel closed. Restart the bot to get a new URL.");
+      await ngrok.forward({
+        addr: PORT,
+        authtoken: NGROK_AUTHTOKEN,
+        domain: NGROK_DOMAIN
       });
       
+      console.log(`\n======================================================`);
+      console.log(`✅ PUBLIC API URL: https://${NGROK_DOMAIN}`);
+      console.log(`======================================================\n`);
+      
     } catch (err) {
-      console.log("⚠️ Tunnel failed to start:", err.message);
+      console.log("⚠️ Ngrok failed to start:", err.message);
     }
 
-    // Load all saved bots
     console.log("📂 Loading saved bots...");
     const dirs = fs.readdirSync(sessionsDir);
     for (const dir of dirs) {
