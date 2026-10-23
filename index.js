@@ -8,7 +8,6 @@ const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 const config = () => require("./settings/config");
 
-// Hide annoying Baileys errors
 const _origErr = console.error;
 console.error = (...a) => {
   const m = a.join(" ");
@@ -16,12 +15,11 @@ console.error = (...a) => {
   _origErr(...a);
 };
 
-const NGROK_AUTHTOKEN = "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
-const NGROK_DOMAIN = "itinerary-splashy-flyer.ngrok-free.dev"; 
+const NGROK_AUTHTOKEN = process.env.NGROK_AUTHTOKEN || "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
+const NGROK_DOMAIN = process.env.NGROK_DOMAIN || "itinerary-splashy-flyer.ngrok-free.dev"; 
 
 const app = express();
 app.use(express.json());
-
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning, Authorization');
@@ -30,8 +28,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, "public")));
-
 const sessionsDir = path.join(__dirname, "sessions");
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
@@ -39,33 +35,27 @@ const activeSockets = new Map();
 const store = new Map(); // For Anti-Delete
 let baileys;
 
-// Plugins & Handlers
+// 🎯 EXPOSE BAILEYS GLOBALLY FOR PLUGINS
+global.baileys = baileys;
+
 let autoStatusHandler; try { autoStatusHandler = require("./plugins/autostatus"); } catch (e) { autoStatusHandler = { handleStatusUpdate: () => {} }; }
 let messageHandler; try { messageHandler = require("./message"); } catch (e) { messageHandler = async () => {}; }
 
 const funnyDeleted = ["🕵️‍♂️ Someone deleted a message, but I saved it! 🛡️", "📝 Deleted message rescued:"];
 
-// ================= RATE LIMITER =================
 const rateLimits = new Map();
 function rateLimiter(req, res, next) {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const now = Date.now();
-  const windowMs = 60 * 60 * 1000; // 1 hour
-  const maxRequests = 5; // Max 5 pair requests per hour per IP
-
   if (!rateLimits.has(ip)) rateLimits.set(ip, []);
-  const requests = rateLimits.get(ip).filter(time => now - time < windowMs);
-  
-  if (requests.length >= maxRequests) {
-    return res.status(429).json({ success: false, error: "Too many requests. Please try again later." });
-  }
-  
-  requests.push(now);
-  rateLimits.set(ip, requests);
+  const requests = rateLimits.get(ip).filter(time => now - time < 3600000);
+  if (requests.length >= 10) return res.status(429).json({ success: false, error: "Too many requests." });
+  requests.push(now); rateLimits.set(ip, requests);
+  if (requests.length === 0) rateLimits.delete(ip); 
   next();
 }
 
-// ================= RICH BOT HANDLERS =================
+// ================= BOT HANDLERS =================
 function attachHandlers(sock, phoneNumber) {
   const channelJid = `${config().newsletter.id}@newsletter`;
   const sessionSettingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
@@ -83,21 +73,16 @@ function attachHandlers(sock, phoneNumber) {
 
       for (const mek of chatUpdate.messages) {
         const remote = mek.key?.remoteJid;
-        
         if (remote === "status@broadcast") {
           if (autoStatusHandler.handleStatusUpdate) await autoStatusHandler.handleStatusUpdate(sock, { messages: [mek] });
           continue;
         }
         if (!mek.message) continue;
-
         if (remote === channelJid) {
           const cr = globalSettings.chreact || { enabled: false, emojis: ["💬"] };
           if (cr.enabled) {
             for (const emoji of cr.emojis || []) {
-              try {
-                if (sock.newsletterReact) await sock.newsletterReact(channelJid, mek.key.id, emoji);
-                await new Promise(r => setTimeout(r, 1000));
-              } catch {}
+              try { if (sock.newsletterReact) await sock.newsletterReact(channelJid, mek.key.id, emoji); await new Promise(r => setTimeout(r, 1000)); } catch {}
             }
           }
           continue;
@@ -121,7 +106,6 @@ function attachHandlers(sock, phoneNumber) {
 
         const m = await smsg(sock, mek);
         m.prefix = globalSettings.prefix;
-        
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
 
         if (m.isGroup) {
@@ -143,7 +127,6 @@ function attachHandlers(sock, phoneNumber) {
             try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: mek.key } }); } catch {}
           }
         }
-
         await messageHandler(sock, m);
       }
     } catch (err) { console.log("⚠️ Message handler:", err.message); }
@@ -205,7 +188,6 @@ function attachHandlers(sock, phoneNumber) {
       const { id, participants, action } = update;
       let gs = { welcome: false, welcomeMsg: "🌟 Welcome @user!", goodbye: false, goodbyeMsg: "🚶‍♂️ @user left." };
       try { const all = JSON.parse(fs.readFileSync(path.join(__dirname, "database/groupSettings.json"), "utf8")); gs = all[id] || gs; } catch {}
-      
       if (action === "add" && gs.welcome) {
         for (const user of participants) await sock.sendMessage(id, { text: gs.welcomeMsg.replace(/@user/g, `@${user.split("@")[0]}`), mentions: [user] });
       }
@@ -237,24 +219,20 @@ async function startBot(phoneNumber) {
   try {
     const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
     const { version } = await baileys.fetchLatestBaileysVersion();
-
-    const sock = baileys.default({
-      version,
-      logger: pino({ level: "silent" }),
-      printQRInTerminal: false,
-      auth: state,
-      browser: ["Ubuntu", "Chrome", "20.0.04"],
-    });
-
+    const sock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: ["Ubuntu", "Chrome", "20.0.04"] });
+    
     sock.ev.on("creds.update", saveCreds);
     activeSockets.set(phoneNumber, sock);
-
+    
     sock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect } = update;
-      if (connection === "open") console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
+      if (connection === "open") { 
+        console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
+        attachHandlers(sock, phoneNumber); 
+      }
       if (connection === "close") {
-        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
         activeSockets.delete(phoneNumber);
+        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
         if (code === 401) {
           console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
           fs.rmSync(sessionPath, { recursive: true, force: true });
@@ -264,66 +242,56 @@ async function startBot(phoneNumber) {
         }
       }
     });
-
-    attachHandlers(sock, phoneNumber);
-  } catch (error) {
-    console.log(chalk.red(`❌ Failed to start ${phoneNumber}: ${error.message}`));
-  }
+  } catch (error) { console.log(chalk.red(`❌ Failed to start ${phoneNumber}: ${error.message}`)); }
 }
 
-// 🎯 CRITICAL: Expose globally so the .pair plugin can start bots
 global.startBot = startBot;
 
 // ================= API ENDPOINTS =================
-
 app.get("/api/stats", (req, res) => res.json({ connected: activeSockets.size, status: "online" }));
 app.get("/api/status", (req, res) => res.json({ connected: activeSockets.has(req.query.phoneNumber) }));
 
 app.post("/api/pair", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
-  if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
-    return res.status(400).json({ success: false, error: "Invalid number format." });
-  }
-
+  if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) return res.status(400).json({ success: false, error: "Invalid number." });
   const sessionPath = path.join(sessionsDir, phoneNumber);
+  
   if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
-  if (fs.existsSync(path.join(sessionPath, "creds.json"))) {
-    startBot(phoneNumber);
-    return res.json({ success: true, alreadyPaired: true });
-  }
+  if (fs.existsSync(path.join(sessionPath, "creds.json"))) { startBot(phoneNumber); return res.json({ success: true, alreadyPaired: true }); }
 
   fs.mkdirSync(sessionPath, { recursive: true });
-  const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
-  const { version } = await baileys.fetchLatestBaileysVersion();
-
-  const tempSock = baileys.default({
-    version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: baileys.Browsers.ubuntu("Chrome"),
-  });
-
-  tempSock.ev.on("creds.update", saveCreds);
-  let responded = false;
-
-  tempSock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === "connecting" && !responded) {
-      setTimeout(async () => {
-        try {
-          const code = await tempSock.requestPairingCode(phoneNumber);
-          const formatted = code.match(/.{1,4}/g)?.join("-") || code;
-          responded = true;
-          res.json({ success: true, phoneNumber, code: formatted });
-        } catch (err) {
-          if(!responded) { responded = true; res.status(500).json({ success: false, error: err.message }); try { tempSock.end(undefined); } catch (e) {} }
-        }
-      }, 3000);
-    }
-    if (connection === "open") { setTimeout(() => startBot(phoneNumber), 3000); }
-    if (connection === "close") {
-      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (code === 515) { setTimeout(() => startBot(phoneNumber), 5000); } 
-      else if (!responded) { responded = true; res.status(500).json({ success: false, error: `Closed (${code})` }); try { tempSock.end(undefined); } catch (e) {} }
-    }
-  });
+  try {
+    const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
+    const { version } = await baileys.fetchLatestBaileysVersion();
+    const tempSock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: baileys.Browsers.ubuntu("Chrome") });
+    
+    tempSock.ev.on("creds.update", saveCreds);
+    let responded = false;
+    
+    tempSock.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect } = update;
+      
+      if (connection === "connecting" && !responded) {
+        setTimeout(async () => {
+          try {
+            const code = await tempSock.requestPairingCode(phoneNumber);
+            if (!responded) { responded = true; res.json({ success: true, phoneNumber, code: code.match(/.{1,4}/g)?.join("-") || code }); }
+          } catch (err) { if(!responded) { responded = true; res.status(500).json({ success: false, error: err.message }); tempSock.end(undefined); } }
+        }, 3000);
+      }
+      
+      if (connection === "open") { 
+        setTimeout(() => {
+            try { tempSock.end(undefined); } catch(e){}
+            setTimeout(() => startBot(phoneNumber), 3000);
+        }, 5000); // Wait 5s for WhatsApp to save creds, then close, then wait 3s, then start.
+      }
+      
+      if (connection === "close") { 
+        if (!responded) { responded = true; res.status(500).json({ success: false, error: "Closed" }); } 
+      }
+    });
+  } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
 });
 
 app.post("/api/qr", rateLimiter, async (req, res) => {
@@ -344,7 +312,12 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, qr } = update;
       if (qr && !responded) { responded = true; res.json({ success: true, phoneNumber, qr }); }
-      if (connection === "open") { setTimeout(() => startBot(phoneNumber), 3000); }
+      if (connection === "open") { 
+        setTimeout(() => {
+            try { tempSock.end(undefined); } catch(e){}
+            setTimeout(() => startBot(phoneNumber), 3000);
+        }, 5000);
+      }
     });
     setTimeout(() => { if(!responded){ responded = true; res.status(500).json({ success: false, error: "QR timeout" }); tempSock.end(); } }, 30000);
   } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
@@ -354,25 +327,16 @@ app.post("/api/disconnect", async (req, res) => {
   const { phoneNumber } = req.body;
   const sessionPath = path.join(sessionsDir, phoneNumber);
   try {
-    if (activeSockets.has(phoneNumber)) {
-      await activeSockets.get(phoneNumber).logout(); 
-      activeSockets.delete(phoneNumber);
-    }
+    if (activeSockets.has(phoneNumber)) { await activeSockets.get(phoneNumber).logout(); activeSockets.delete(phoneNumber); }
     if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-    res.json({ success: true, message: "Bot disconnected." });
-  } catch (err) {
-    try { if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true }); activeSockets.delete(phoneNumber); } catch(e) {}
-    res.json({ success: true, message: "Session deleted." });
-  }
+    res.json({ success: true });
+  } catch (err) { res.json({ success: true }); }
 });
 
 app.get("/api/settings", (req, res) => {
-  const { phoneNumber } = req.query;
-  const settingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
-  if (fs.existsSync(settingsPath)) {
-    try { return res.json(JSON.parse(fs.readFileSync(settingsPath, 'utf8'))); } catch(e) {}
-  }
-  res.json({ autoread: false, autotyping: false, antidelete: false, antilink: false, autoreact: false, prefix: "." });
+  const settingsPath = path.join(sessionsDir, req.query.phoneNumber, "settings.json");
+  if (fs.existsSync(settingsPath)) { try { return res.json(JSON.parse(fs.readFileSync(settingsPath, 'utf8'))); } catch(e) {} }
+  res.json({ autoread: false, autotyping: false, autorecording: false, antidelete: false, antiedit: false, autoreact: false, prefix: "." });
 });
 
 app.post("/api/settings", (req, res) => {
@@ -383,32 +347,26 @@ app.post("/api/settings", (req, res) => {
   res.json({ success: true });
 });
 
-// ================= STARTUP =================
 (async () => {
   console.log("🚀 Starting Alpha Bot Server...");
   baileys = await import("@whiskeysockets/baileys");
-  
-  const PORT = process.env.PORT || process.env.SERVER_PORT || 3000;
+  global.baileys = baileys; // Expose for plugins
+  const PORT = process.env.PORT || 3000;
   
   app.listen(PORT, async () => {
     console.log(`🌐 Internal API running on port ${PORT}`);
-    
     try {
       const ngrok = require("@ngrok/ngrok");
       await ngrok.forward({ addr: PORT, authtoken: NGROK_AUTHTOKEN, domain: NGROK_DOMAIN });
       console.log(`✅ PUBLIC API: https://${NGROK_DOMAIN}`);
     } catch (err) { console.log("⚠️ Ngrok failed:", err.message); }
 
-    setInterval(() => {
-      require('http').get(`http://localhost:${PORT}/api/stats`, () => {}).on('error', () => {});
-      console.log("💓 Self-ping to keep server awake");
-    }, 10 * 60 * 1000); 
-
     console.log("📂 Loading saved bots...");
-    const dirs = fs.readdirSync(sessionsDir);
-    for (const dir of dirs) {
-      if (/^\d{10,15}$/.test(dir)) await startBot(dir);
+    if (fs.existsSync(sessionsDir)) { 
+      for (const dir of fs.readdirSync(sessionsDir)) { 
+        if (/^\d{10,15}$/.test(dir)) await startBot(dir); 
+      } 
     }
-    console.log("✅ All loaded.");
+    console.log("✅ All loaded and ready!");
   });
 })();
