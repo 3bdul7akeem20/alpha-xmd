@@ -29,6 +29,27 @@ if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 const activeSockets = new Map();
 let baileys;
 
+// ================= RATE LIMITER =================
+const rateLimits = new Map();
+function rateLimiter(req, res, next) {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000; // 1 hour
+  const maxRequests = 5; // Max 5 pair requests per hour per IP
+
+  if (!rateLimits.has(ip)) rateLimits.set(ip, []);
+  const requests = rateLimits.get(ip).filter(time => now - time < windowMs);
+  
+  if (requests.length >= maxRequests) {
+    return res.status(429).json({ success: false, error: "Too many requests. Please try again later." });
+  }
+  
+  requests.push(now);
+  rateLimits.set(ip, requests);
+  next();
+}
+
+// ================= BOT HANDLERS =================
 function attachHandlers(sock, phoneNumber) {
   sock.ev.on("messages.upsert", async (chatUpdate) => {
     try {
@@ -38,12 +59,6 @@ function attachHandlers(sock, phoneNumber) {
         const remote = mek.key?.remoteJid;
         if (remote === "status@broadcast" || !mek.message) continue;
         
-        try {
-          const msgType = Object.keys(mek.message || {})[0] || 'unknown';
-          const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
-          console.log(chalk.green(`[${phoneNumber}]`) + ` ${mek.key.fromMe ? '⬅️' : '➡️'} ${msgType}: ${msgText.substring(0,30)}`);
-        } catch (e) {}
-
         if (mek.key.fromMe) {
           const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
           if (!txt.startsWith(".")) continue;
@@ -85,9 +100,7 @@ async function startBot(phoneNumber) {
 
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
-    if (connection === "open") {
-      console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
-    }
+    if (connection === "open") console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
     if (connection === "close") {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
       activeSockets.delete(phoneNumber);
@@ -106,118 +119,93 @@ async function startBot(phoneNumber) {
 
 // ================= API ENDPOINTS =================
 
-// 1. Get Live Stats
+// Stats
 app.get("/api/stats", (req, res) => {
-  res.json({ 
-    connected: activeSockets.size,
-    status: "online" 
-  });
+  res.json({ connected: activeSockets.size, status: "online" });
 });
 
-// 2. Pairing Endpoint
-app.post("/api/pair", async (req, res) => {
+// Pairing
+app.post("/api/pair", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
     return res.status(400).json({ success: false, error: "Invalid number format." });
   }
 
   const sessionPath = path.join(sessionsDir, phoneNumber);
-  
-  if (activeSockets.has(phoneNumber)) {
-    return res.json({ success: true, alreadyPaired: true, message: "Bot is already running!" });
-  }
-
+  if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
   if (fs.existsSync(path.join(sessionPath, "creds.json"))) {
     startBot(phoneNumber);
-    return res.json({ success: true, alreadyPaired: true, message: "Session found. Starting bot!" });
+    return res.json({ success: true, alreadyPaired: true });
   }
 
-  console.log(`[${phoneNumber}] New pairing request...`);
   fs.mkdirSync(sessionPath, { recursive: true });
-  
   const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
   const { version } = await baileys.fetchLatestBaileysVersion();
 
   const tempSock = baileys.default({
-    version,
-    logger: pino({ level: "silent" }),
-    printQRInTerminal: false,
-    auth: state,
-    browser: baileys.Browsers.ubuntu("Chrome"),
+    version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: baileys.Browsers.ubuntu("Chrome"),
   });
 
   tempSock.ev.on("creds.update", saveCreds);
-
   let responded = false;
 
   tempSock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
-
     if (connection === "connecting" && !responded) {
       setTimeout(async () => {
         try {
           const code = await tempSock.requestPairingCode(phoneNumber);
           const formatted = code.match(/.{1,4}/g)?.join("-") || code;
-          console.log(`[${phoneNumber}] Code: ${formatted}`);
           responded = true;
           res.json({ success: true, phoneNumber, code: formatted });
         } catch (err) {
-          if(!responded) {
-            responded = true;
-            res.status(500).json({ success: false, error: err.message });
-            try { tempSock.end(undefined); } catch (e) {}
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-          }
+          if(!responded) { responded = true; res.status(500).json({ success: false, error: err.message }); try { tempSock.end(undefined); } catch (e) {} }
         }
       }, 3000);
     }
-
-    if (connection === "open") {
-      console.log(`[${phoneNumber}] 🎉 Linked successfully!`);
-      setTimeout(() => startBot(phoneNumber), 3000);
-    }
-
+    if (connection === "open") { setTimeout(() => startBot(phoneNumber), 3000); }
     if (connection === "close") {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (code === 515 || code === baileys.DisconnectReason?.restartRequired) {
-        console.log(`[${phoneNumber}] 515 Restart. Pairing successful. Starting bot...`);
-        try { tempSock.end(undefined); } catch (e) {}
-        setTimeout(() => startBot(phoneNumber), 5000); 
-      } else if (!responded) {
-        responded = true;
-        res.status(500).json({ success: false, error: `Closed (${code})` });
-        try { tempSock.end(undefined); } catch (e) {}
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-      }
+      if (code === 515) { setTimeout(() => startBot(phoneNumber), 5000); } 
+      else if (!responded) { responded = true; res.status(500).json({ success: false, error: `Closed (${code})` }); try { tempSock.end(undefined); } catch (e) {} }
     }
   });
 });
 
-// 3. Disconnect Endpoint
+// Disconnect
 app.post("/api/disconnect", async (req, res) => {
   const { phoneNumber } = req.body;
   const sessionPath = path.join(sessionsDir, phoneNumber);
-
   try {
     if (activeSockets.has(phoneNumber)) {
-      const sock = activeSockets.get(phoneNumber);
-      await sock.logout(); 
+      await activeSockets.get(phoneNumber).logout(); 
       activeSockets.delete(phoneNumber);
     }
-    
-    if (fs.existsSync(sessionPath)) {
-      fs.rmSync(sessionPath, { recursive: true, force: true });
-    }
-
-    res.json({ success: true, message: "Bot disconnected and session deleted." });
+    if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+    res.json({ success: true, message: "Bot disconnected." });
   } catch (err) {
-    try {
-      if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-      activeSockets.delete(phoneNumber);
-    } catch(e) {}
-    
-    res.json({ success: true, message: "Session deleted locally." });
+    try { if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true }); activeSockets.delete(phoneNumber); } catch(e) {}
+    res.json({ success: true, message: "Session deleted." });
   }
+});
+
+// Get User Settings
+app.get("/api/settings", (req, res) => {
+  const { phoneNumber } = req.query;
+  const settingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
+  if (fs.existsSync(settingsPath)) {
+    try { return res.json(JSON.parse(fs.readFileSync(settingsPath, 'utf8'))); } catch(e) {}
+  }
+  res.json({ autoread: false, autotyping: false, antidelete: false, antilink: false, autoreact: false });
+});
+
+// Save User Settings
+app.post("/api/settings", (req, res) => {
+  const { phoneNumber, settings } = req.body;
+  const dir = path.join(sessionsDir, phoneNumber);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "settings.json"), JSON.stringify(settings, null, 2));
+  res.json({ success: true });
 });
 
 
@@ -233,28 +221,20 @@ app.post("/api/disconnect", async (req, res) => {
     
     try {
       const ngrok = require("@ngrok/ngrok");
-      console.log("⏳ Connecting to Ngrok...");
-      
-      await ngrok.forward({
-        addr: PORT,
-        authtoken: NGROK_AUTHTOKEN,
-        domain: NGROK_DOMAIN
-      });
-      
-      console.log(`\n======================================================`);
-      console.log(`✅ PUBLIC API URL: https://${NGROK_DOMAIN}`);
-      console.log(`======================================================\n`);
-      
-    } catch (err) {
-      console.log("⚠️ Ngrok failed to start:", err.message);
-    }
+      await ngrok.forward({ addr: PORT, authtoken: NGROK_AUTHTOKEN, domain: NGROK_DOMAIN });
+      console.log(`✅ PUBLIC API: https://${NGROK_DOMAIN}`);
+    } catch (err) { console.log("⚠️ Ngrok failed:", err.message); }
+
+    // 🎯 SELF-PING TO KEEP HOST AWAKE
+    setInterval(() => {
+      require('http').get(`http://localhost:${PORT}/api/stats`, () => {}).on('error', () => {});
+      console.log("💓 Self-ping to keep server awake");
+    }, 10 * 60 * 1000); // Pings every 10 minutes
 
     console.log("📂 Loading saved bots...");
     const dirs = fs.readdirSync(sessionsDir);
     for (const dir of dirs) {
-      if (/^\d{10,15}$/.test(dir)) {
-        await startBot(dir);
-      }
+      if (/^\d{10,15}$/.test(dir)) await startBot(dir);
     }
     console.log("✅ All loaded.");
   });
