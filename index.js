@@ -14,9 +14,11 @@ const NGROK_DOMAIN = "itinerary-splashy-flyer.ngrok-free.dev";
 const app = express();
 app.use(express.json());
 
+// ✅ FIX: Allow the specific Ngrok header in CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
@@ -138,50 +140,49 @@ app.post("/api/pair", async (req, res) => {
   tempSock.ev.on("creds.update", saveCreds);
 
   let responded = false;
-  let attempts = 0;
 
-  const startSocket = async () => {
-    attempts++;
-    if (attempts > 5) {
-      if(!responded) res.status(500).json({ success: false, error: "Connection failed." });
-      return;
+  tempSock.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect } = update;
+
+    if (connection === "connecting" && !responded) {
+      setTimeout(async () => {
+        try {
+          const code = await tempSock.requestPairingCode(phoneNumber);
+          const formatted = code.match(/.{1,4}/g)?.join("-") || code;
+          console.log(`[${phoneNumber}] Code: ${formatted}`);
+          responded = true;
+          res.json({ success: true, phoneNumber, code: formatted });
+        } catch (err) {
+          if(!responded) {
+            responded = true;
+            res.status(500).json({ success: false, error: err.message });
+            try { tempSock.end(undefined); } catch (e) {}
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+          }
+        }
+      }, 3000);
     }
 
-    tempSock.ev.on("connection.update", async (update) => {
-      const { connection, lastDisconnect } = update;
+    if (connection === "open") {
+      console.log(`[${phoneNumber}] 🎉 Linked successfully!`);
+      setTimeout(() => startBot(phoneNumber), 3000);
+    }
 
-      if (connection === "connecting" && !responded) {
-        setTimeout(async () => {
-          try {
-            const code = await tempSock.requestPairingCode(phoneNumber);
-            const formatted = code.match(/.{1,4}/g)?.join("-") || code;
-            console.log(`[${phoneNumber}] Code: ${formatted}`);
-            responded = true;
-            res.json({ success: true, phoneNumber, code: formatted });
-          } catch (err) {
-            if(!responded) res.status(500).json({ success: false, error: err.message });
-          }
-        }, 3000);
+    if (connection === "close") {
+      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+      // ✅ FIX: 515 means pairing succeeded. Start the real bot and stop the temp socket.
+      if (code === 515 || code === baileys.DisconnectReason?.restartRequired) {
+        console.log(`[${phoneNumber}] 515 Restart. Pairing successful. Starting bot...`);
+        try { tempSock.end(undefined); } catch (e) {}
+        setTimeout(() => startBot(phoneNumber), 5000); // Give time for session to save
+      } else if (!responded) {
+        responded = true;
+        res.status(500).json({ success: false, error: `Closed (${code})` });
+        try { tempSock.end(undefined); } catch (e) {}
+        fs.rmSync(sessionPath, { recursive: true, force: true });
       }
-
-      if (connection === "open") {
-        console.log(`[${phoneNumber}] 🎉 Linked successfully!`);
-        setTimeout(() => startBot(phoneNumber), 2000);
-      }
-
-      if (connection === "close") {
-        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-        if (code === 515 || code === baileys.DisconnectReason?.restartRequired) {
-          console.log(`[${phoneNumber}] 515 Restart. Reconnecting to finish...`);
-          setTimeout(startSocket, 1500);
-        } else if (!responded) {
-          res.status(500).json({ success: false, error: `Closed (${code})` });
-        }
-      }
-    });
-  };
-
-  await startSocket();
+    }
+  });
 });
 
 // ================= STARTUP =================
@@ -194,7 +195,6 @@ app.post("/api/pair", async (req, res) => {
   app.listen(PORT, async () => {
     console.log(`🌐 Internal API running on port ${PORT}`);
     
-    // 🎯 START NGROK TUNNEL
     try {
       const ngrok = require("@ngrok/ngrok");
       console.log("⏳ Connecting to Ngrok...");
