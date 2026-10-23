@@ -6,23 +6,18 @@ const pino = require("pino");
 const chalk = require("chalk");
 const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
-
 const config = () => require("./settings/config");
-const PhoneNumber = require("awesome-phonenumber");
 
-// 🎯 FEATURE: Hide annoying Baileys decryption errors
+// Hide annoying Baileys errors
 const _origErr = console.error;
 console.error = (...a) => {
   const m = a.join(" ");
-  if (
-    m.includes("Bad MAC") || m.includes("Session error") || m.includes("verifyMAC") ||
-    m.includes("Failed to decrypt") || m.includes("decryptWithSessions") || m.includes("doDecryptWhisperMessage")
-  ) return;
+  if (m.includes("Bad MAC") || m.includes("Session error") || m.includes("verifyMAC") || m.includes("Failed to decrypt") || m.includes("decryptWithSessions")) return;
   _origErr(...a);
 };
 
-const NGROK_AUTHTOKEN = "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
-const NGROK_DOMAIN = "itinerary-splashy-flyer.ngrok-free.dev"; 
+const NGROK_AUTHTOKEN = process.env.NGROK_AUTHTOKEN || "3L4Ccoik7R16ilMsfKycK2OZkmC_7qvF29reP3BEE19h42nyk"; 
+const NGROK_DOMAIN = process.env.NGROK_DOMAIN || "itinerary-splashy-flyer.ngrok-free.dev"; 
 
 const app = express();
 app.use(express.json());
@@ -39,10 +34,9 @@ const sessionsDir = path.join(__dirname, "sessions");
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
 const activeSockets = new Map();
-const store = new Map(); // 🎯 FEATURE: Global store for Anti-Delete
+const store = new Map(); // For Anti-Delete
 let baileys;
 
-// 🎯 FEATURE: AutoStatus Handler
 let autoStatusHandler;
 try { autoStatusHandler = require("./plugins/autostatus"); } catch (e) { autoStatusHandler = { handleStatusUpdate: () => {} }; }
 let messageHandler;
@@ -60,18 +54,16 @@ function rateLimiter(req, res, next) {
   if (!rateLimits.has(ip)) rateLimits.set(ip, []);
   const requests = rateLimits.get(ip).filter(time => now - time < windowMs);
   if (requests.length >= maxRequests) return res.status(429).json({ success: false, error: "Too many requests." });
-  requests.push(now);
-  rateLimits.set(ip, requests);
+  requests.push(now); rateLimits.set(ip, requests);
   if (requests.length === 0) rateLimits.delete(ip); 
   next();
 }
 
-// ================= BOT HANDLERS (MERGED) =================
+// ================= BOT HANDLERS =================
 function attachHandlers(sock, phoneNumber) {
   const channelJid = `${config().newsletter.id}@newsletter`;
   const sessionSettingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
   
-  // Load per-session settings
   const loadGlobalSettings = () => {
     let defaults = { autoread: false, autotyping: false, autorecording: false, autoreact: false, antidelete: false, antiedit: false };
     try { if(fs.existsSync(sessionSettingsPath)) return { ...defaults, ...JSON.parse(fs.readFileSync(sessionSettingsPath, "utf8")) }; } catch {}
@@ -82,7 +74,7 @@ function attachHandlers(sock, phoneNumber) {
     try {
       const messages = chatUpdate.messages;
       if (!messages?.length) return;
-      const globalSettings = loadGlobalSettings(); // Load dynamic settings per message
+      const globalSettings = loadGlobalSettings(); 
 
       for (const mek of messages) {
         const remote = mek.key?.remoteJid;
@@ -92,21 +84,16 @@ function attachHandlers(sock, phoneNumber) {
         }
         if (!mek.message) continue;
 
-        // Channel Reaction
         if (remote === channelJid) {
           const cr = globalSettings.chreact || { enabled: false, emojis: ["💬"] };
           if (cr.enabled) {
             for (const emoji of cr.emojis || []) {
-              try {
-                if (sock.newsletterReact) await sock.newsletterReact(channelJid, mek.key.id, emoji);
-                await new Promise(r => setTimeout(r, 1000));
-              } catch {}
+              try { if (sock.newsletterReact) await sock.newsletterReact(channelJid, mek.key.id, emoji); await new Promise(r => setTimeout(r, 1000)); } catch {}
             }
           }
           continue;
         }
 
-        // Fancy Logger
         try {
           const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
           const shortText = msgText.length > 60 ? msgText.substring(0, 60) + '...' : msgText;
@@ -124,11 +111,8 @@ function attachHandlers(sock, phoneNumber) {
         }
 
         const m = await smsg(sock, mek);
-
-        // Store message for Anti-Delete
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
 
-        // Group Admin Check
         if (m.isGroup) {
           try {
             const metadata = await sock.groupMetadata(m.chat);
@@ -140,7 +124,6 @@ function attachHandlers(sock, phoneNumber) {
           } catch { m.isAdmin = false; m.isBotAdmin = false; }
         }
 
-        // Auto Features
         if (globalSettings.autoread) { try { await sock.readMessages([mek.key]); } catch {} }
         if (globalSettings.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
         if (globalSettings.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
@@ -151,13 +134,11 @@ function attachHandlers(sock, phoneNumber) {
             try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: mek.key } }); } catch {}
           }
         }
-
         await messageHandler(sock, m);
       }
     } catch (err) { console.log("⚠️ Message handler:", err.message); }
   });
 
-  // 🎯 FEATURE: Anti-Delete and Anti-Edit
   sock.ev.on("messages.update", async updates => {
     try {
       const globalSettings = loadGlobalSettings();
@@ -170,20 +151,16 @@ function attachHandlers(sock, phoneNumber) {
         if (!oldMsg) continue;
 
         if (update.update?.message === null && ad.enabled) {
-          const chat = update.key.remoteJid;
-          if (!chat) continue;
+          const chat = update.key.remoteJid; if (!chat) continue;
           const isGroup = chat.endsWith("@g.us");
           const sender = oldMsg.sender || update.key.participant || chat;
           const senderNumber = sender.split("@")[0].replace(/[^0-9]/g, "");
-          const privateName = oldMsg.pushName?.trim() || senderNumber;
           let chatName = "Private Chat";
           if (isGroup) { try { const gm = await sock.groupMetadata(chat); chatName = gm.subject; } catch {} }
-          const now = new Date();
-          const time = now.toLocaleTimeString(), date = now.toLocaleDateString();
           const deleted = (oldMsg.text || "Media").replace(/\n/g, "\n│ │ ");
           
           let text = ad.style === "fancy" 
-            ? `╭───〔 👁️‍🗨️ ANTIDELETE 〕───⬣\n│\n│ 👤 @${senderNumber}\n│ 📍 ${chatName}\n│ 🕒 ${time}\n│ 📅 ${date}\n│\n│ 🗑️:\n│ ┌─\n│ │ ${deleted}\n│ └─\n│ 🛡️ Alpha\n╰──`
+            ? `╭───〔 👁️‍🗨️ ANTIDELETE 〕───⬣\n│\n│ 👤 @${senderNumber}\n│ 📍 ${chatName}\n│ 🕒 ${new Date().toLocaleTimeString()}\n│ 🗑️:\n│ ┌─\n│ │ ${deleted}\n│ └─\n│ 🛡️ Alpha\n╰──`
             : `${funnyDeleted[0]}\n\n${oldMsg.text || "Media"}`;
 
           const destinations = [];
@@ -195,9 +172,7 @@ function attachHandlers(sock, phoneNumber) {
             if (isGroup && ad.style === "fancy" && dest === chat) opts.mentions = [sender];
             if (ad.style === "fancy") {
               await sock.sendMessage(dest, { text, contextInfo: { forwardingScore: 999, isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: channelJid, newsletterName: config().newsletter.name } }, ...opts });
-            } else {
-              await sock.sendMessage(dest, { text, ...opts });
-            }
+            } else { await sock.sendMessage(dest, { text, ...opts }); }
             if (ad.react && dest === chat) { try { await sock.sendMessage(dest, { react: { text: "👀", key: update.key } }); } catch {} }
           }
         }
@@ -213,7 +188,6 @@ function attachHandlers(sock, phoneNumber) {
     } catch {}
   });
 
-  // 🎯 FEATURE: Welcome/Goodbye
   sock.ev.on("group-participants.update", async update => {
     try {
       const { id, participants, action } = update;
@@ -228,7 +202,6 @@ function attachHandlers(sock, phoneNumber) {
     } catch {}
   });
 
-  // 🎯 FEATURE: Follow Channel & Startup Message
   setTimeout(async () => { try { await sock.newsletterFollow(channelJid); } catch {} }, 3000);
   setTimeout(async () => {
     try {
@@ -238,7 +211,6 @@ function attachHandlers(sock, phoneNumber) {
     } catch {}
   }, 4000);
 
-  // 🎯 FEATURE: Presence Loop
   setInterval(() => { if (sock.user) sock.sendPresenceUpdate("available").catch(() => {}); }, 20000);
 }
 
@@ -257,7 +229,6 @@ async function startBot(phoneNumber) {
       connectTimeoutMs: 60000, defaultQueryTimeoutMs: 60000, keepAliveIntervalMs: 20000,
     });
 
-    // 🎯 FEATURE: JID Decoder & KeepAlive
     sock.decodeJid = jid => {
       if (!jid) return jid;
       if (/:\d+@/gi.test(jid)) {
@@ -294,6 +265,12 @@ async function startBot(phoneNumber) {
 
 // ================= API ENDPOINTS =================
 app.get("/api/stats", (req, res) => res.json({ connected: activeSockets.size, status: "online" }));
+
+// 🎯 NEW ENDPOINT: Checks if the specific number is connected (for the frontend polling)
+app.get("/api/status", (req, res) => {
+  const { phoneNumber } = req.query;
+  res.json({ connected: activeSockets.has(phoneNumber) });
+});
 
 app.post("/api/pair", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
@@ -346,7 +323,7 @@ app.get("/api/settings", (req, res) => {
   const { phoneNumber } = req.query;
   const settingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
   if (fs.existsSync(settingsPath)) { try { return res.json(JSON.parse(fs.readFileSync(settingsPath, 'utf8'))); } catch(e) {} }
-  res.json({ autoread: false, autotyping: false, antidelete: false, antilink: false, autoreact: false });
+  res.json({ autoread: false, autotyping: false, autorecording: false, antidelete: false, antiedit: false, autoreact: false });
 });
 
 app.post("/api/settings", (req, res) => {
