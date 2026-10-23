@@ -216,37 +216,6 @@ function attachHandlers(sock, phoneNumber) {
   setInterval(() => { if (sock.user) sock.sendPresenceUpdate("available").catch(() => {}); }, 20000);
 }
 
-// 🎯 Unified function to attach a socket to the main bot logic
-function attachBot(sock, phoneNumber) {
-  if (activeSockets.has(phoneNumber)) return;
-  sock.decodeJid = jid => { if (!jid) return jid; if (/:\d+@/gi.test(jid)) { const d = baileys.jidDecode(jid) || {}; return d.user && d.server ? `${d.user}@${d.server}` : jid; } return jid; };
-  activeSockets.set(phoneNumber, sock);
-  
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === "open") { 
-      console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
-    }
-    if (connection === "close") {
-      activeSockets.delete(phoneNumber);
-      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (code === 401) {
-        console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
-        const sessionPath = path.join(sessionsDir, phoneNumber);
-        if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-      } else {
-        console.log(chalk.yellow(`🔄 [${phoneNumber}] Reconnecting in 10s...`));
-        setTimeout(() => startBot(phoneNumber), 10000);
-      }
-    }
-  });
-  
-  attachHandlers(sock, phoneNumber);
-}
-
-// 🎯 EXPOSE globally so the API and plugins can use it
-global.attachBot = attachBot;
-
 // ================= SESSION STARTER =================
 async function startBot(phoneNumber) {
   if (activeSockets.has(phoneNumber)) return; 
@@ -261,13 +230,30 @@ async function startBot(phoneNumber) {
     const sock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: ["Ubuntu", "Chrome", "20.0.04"] });
     
     sock.ev.on("creds.update", saveCreds);
+    activeSockets.set(phoneNumber, sock);
     
-    // 🎯 Use the unified attachBot function
-    global.attachBot(sock, phoneNumber);
-    
+    sock.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect } = update;
+      if (connection === "open") { 
+        console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
+        attachHandlers(sock, phoneNumber); 
+      }
+      if (connection === "close") {
+        activeSockets.delete(phoneNumber);
+        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+        if (code === 401) {
+          console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
+          fs.rmSync(sessionPath, { recursive: true, force: true });
+        } else {
+          console.log(chalk.yellow(`🔄 [${phoneNumber}] Reconnecting in 10s...`));
+          setTimeout(() => startBot(phoneNumber), 10000);
+        }
+      }
+    });
   } catch (error) { console.log(chalk.red(`❌ Failed to start ${phoneNumber}: ${error.message}`)); }
 }
 
+// 🎯 Expose globally for the .pair plugin
 global.startBot = startBot;
 
 // ================= API ENDPOINTS =================
@@ -278,7 +264,6 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) return res.status(400).json({ success: false, error: "Invalid number." });
   const sessionPath = path.join(sessionsDir, phoneNumber);
-  
   if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
   if (fs.existsSync(path.join(sessionPath, "creds.json"))) { startBot(phoneNumber); return res.json({ success: true, alreadyPaired: true }); }
 
@@ -303,9 +288,12 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
         }, 3000);
       }
       
-      // 🎯 FIX: Pass the active socket to attachBot instead of calling startBot
+      // 🎯 FIX: Properly close the temp socket, wait, then start the main bot
       if (connection === "open") { 
-        if (global.attachBot) global.attachBot(tempSock, phoneNumber); 
+        setTimeout(() => {
+            try { tempSock.end(undefined); } catch(e){}
+            setTimeout(() => startBot(phoneNumber), 3000);
+        }, 5000);
       }
       
       if (connection === "close") { 
@@ -319,7 +307,6 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber) return res.status(400).json({ success: false, error: "Invalid number." });
   const sessionPath = path.join(sessionsDir, phoneNumber);
-  
   if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
   
   fs.mkdirSync(sessionPath, { recursive: true });
@@ -334,9 +321,13 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, qr } = update;
       if (qr && !responded) { responded = true; res.json({ success: true, phoneNumber, qr }); }
-      // 🎯 FIX: Pass the active socket to attachBot
+      
+      // 🎯 FIX: Same logic for QR
       if (connection === "open") { 
-        if (global.attachBot) global.attachBot(tempSock, phoneNumber); 
+        setTimeout(() => {
+            try { tempSock.end(undefined); } catch(e){}
+            setTimeout(() => startBot(phoneNumber), 3000);
+        }, 5000);
       }
     });
     setTimeout(() => { if(!responded){ responded = true; res.status(500).json({ success: false, error: "QR timeout" }); tempSock.end(); } }, 30000);
