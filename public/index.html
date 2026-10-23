@@ -1,199 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alpha-XMD | Next-Gen WhatsApp Bot</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/css/intlTelInput.css">
-<style>
-:root{--bg:#050505;--card:#0f0f11;--brd:#27272a;--txt:#fff;--mut:#a1a1aa;--pri:#00ff88;--glow:rgba(0,255,136,.15)}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
-h1,h2,h3,.brand{font-family:'Space Grotesk',sans-serif}
-.mesh,.mesh2{position:absolute;filter:blur(60px);z-index:0;pointer-events:none}
-.mesh{width:600px;height:600px;background:radial-gradient(circle,var(--glow) 0%,transparent 60%);top:-200px;left:-200px}
-.mesh2{width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1) 0%,transparent 60%);bottom:-100px;right:-100px}
-nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5%;border-bottom:1px solid rgba(255,255,255,.05);position:relative;z-index:10;backdrop-filter:blur(10px)}
-.brand{font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px}
-.brand img{width:32px;height:32px;border-radius:8px}
-.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--pri);background:rgba(0,255,136,.1);padding:6px 14px;border-radius:20px;border:1px solid rgba(0,255,136,.2)}
-.dot{width:6px;height:6px;background:var(--pri);border-radius:50%;box-shadow:0 0 10px var(--pri);animation:pl 2s infinite}
-@keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
-.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center;max-width:1100px;margin:0 auto;padding:80px 5%;position:relative;z-index:10}
-.tag{display:inline-block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:20px;color:var(--mut)}
-.hero h1{font-size:52px;line-height:1.1;margin-bottom:20px}
-.hero h1 span{color:var(--pri);text-shadow:0 0 20px var(--glow)}
-.hero p{font-size:17px;color:var(--mut);line-height:1.6;margin-bottom:35px}
-.f-badges{display:flex;gap:20px;flex-wrap:wrap}.f-badge{display:flex;align-items:center;gap:8px;font-size:13px}.f-badge svg{color:var(--pri)}
-.card{background:rgba(15,15,17,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.5);min-height:380px;position:relative}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
-.card h3{font-size:20px;margin-bottom:24px;display:flex;align-items:center;gap:10px}
-.in-group label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600;text-transform:uppercase}
-.btn{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:.3s;display:flex;justify-content:center;align-items:center;gap:10px}
-.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px var(--glow)}
-.btn:disabled{background:#333;color:#888;cursor:not-allowed}
-.sp{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-radius:50%;border-top-color:#000;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-#state-code,#state-connected{display:none}
-.res{margin-top:10px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);padding:24px;border-radius:16px;text-align:center}
-.code-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0}
-.code{font-size:38px;font-weight:700;letter-spacing:8px;color:var(--pri);text-shadow:0 0 30px var(--glow)}
-.copy-btn{background:rgba(255,255,255,.1);border:1px solid var(--brd);color:#fff;padding:10px;border-radius:8px;cursor:pointer;transition:.2s}
-.copy-btn:hover{background:var(--pri);color:#000}
-.waiting{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--mut);font-size:13px;margin-top:15px}
-.spinner-small{width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite}
-.success-icon{width:64px;height:64px;background:rgba(0,255,136,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:var(--pri);animation:pulse 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,255,136,.4)}70%{box-shadow:0 0 0 20px rgba(0,255,136,0)}100%{box-shadow:0 0 0 0 rgba(0,255,136,0)}}
-.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);z-index:1000;display:none;justify-content:center;align-items:center;opacity:0;transition:.3s}
-.modal.show{display:flex;opacity:1}
-.m-box{background:var(--card);border:1px solid var(--brd);width:90%;max-width:400px;border-radius:16px;padding:24px;transform:translateY(20px);transition:.3s;max-height:90vh;overflow-y:auto}
-.modal.show .m-box{transform:translateY(0)}
-.set-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-.set-name{font-size:14px;font-weight:500}
-.ts{position:relative;width:44px;height:24px}.ts input{opacity:0;width:0;height:0}
-.sl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#3f3f46;transition:.4s;border-radius:24px}
-.sl:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.4s;border-radius:50%}
-input:checked+.sl{background:var(--pri)}input:checked+.sl:before{transform:translateX(20px)}
-.iti{width:100%}.iti__flag-container{background:rgba(0,0,0,.5)!important;border-radius:12px 0 0 12px!important}
-.iti__selected-flag{background:transparent!important;padding:0 16px!important}
-.iti__selected-dial-code{color:#fff!important;font-family:'Space Grotesk',sans-serif!important}
-#phone{width:100%;padding:16px 16px 16px 90px!important;background:rgba(0,0,0,.5)!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;color:#fff!important;font-size:16px!important;outline:none!important;transition:.3s}
-#phone:focus{border-color:var(--pri)!important;box-shadow:0 0 20px var(--glow)!important}
-#toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
-.toast{background:var(--card);border:1px solid var(--brd);border-left:4px solid var(--pri);padding:16px 20px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translateX(120%);transition:transform .3s;display:flex;align-items:center;gap:10px}
-.toast.show{transform:translateX(0)}.toast.error{border-left-color:#ef4444}
-@media(max-width:900px){.hero{grid-template-columns:1fr;text-align:center;padding:40px 5%}.hero h1{font-size:40px}}
-</style>
-</head>
-<body>
-<div class="mesh"></div><div class="mesh2"></div>
-<nav>
-  <div class="brand"><img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg"> Alpha-XMD</div>
-  <div class="status"><div class="dot" id="s-dot"></div><span id="s-txt">Connecting...</span></div>
-</nav>
-<div class="hero">
-  <div>
-    <div class="tag">SYSTEMS ONLINE</div>
-    <h1>The Ultimate <span>WhatsApp Bot</span> Platform.</h1>
-    <p>Deploy a powerful multi-device WhatsApp bot in seconds. No servers, no coding, no hassle.</p>
-    <div class="f-badges">
-      <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 99.9% Uptime</div>
-      <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure Session</div>
-    </div>
-  </div>
-  <div class="card">
-    <div id="state-input">
-      <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Pairing Code</h3>
-      <div class="in-group"><label>Phone Number</label><input type="tel" id="phone"></div>
-      <button class="btn" id="gen-b" onclick="rc()"><span id="b-txt">Generate Code</span><div class="sp" id="sp"></div></button>
-    </div>
-    <div id="state-code">
-      <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Link Device</h3>
-      <div class="res">
-        <p style="font-size:13px;color:var(--mut)">Enter in WhatsApp > Linked Devices</p>
-        <div class="code-wrap">
-          <div class="code" id="cd">----</div>
-          <button class="copy-btn" onclick="copyCode()" title="Copy Code"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-        </div>
-        <div class="waiting"><div class="spinner-small"></div>Waiting for you to link device...</div>
-      </div>
-      <button class="btn" style="margin-top:20px;background:transparent;border:1px solid var(--brd);color:var(--mut)" onclick="resetUI()">Cancel</button>
-    </div>
-    <div id="state-connected">
-      <div class="success-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <h3 style="justify-content:center;margin-bottom:10px">Bot Connected!</h3>
-      <p style="text-align:center;font-size:13px;color:var(--mut);margin-bottom:20px">Your session is active in the cloud.</p>
-      <button class="btn" onclick="openSettings()">⚙️ Manage Settings</button>
-      <button class="btn" style="margin-top:10px;background:transparent;color:#ef4444;border:1px solid #ef4444" onclick="db()">Disconnect Session</button>
-    </div>
-  </div>
-</div>
-<div class="modal" id="setModal">
-  <div class="m-box">
-    <h3>Bot Settings</h3>
-    <div class="set-item"><span class="set-name">Auto Read</span><label class="ts"><input type="checkbox" id="set-autoread"><span class="sl"></span></label></div>
-    <div class="set-item"><span class="set-name">Auto Typing</span><label class="ts"><input type="checkbox" id="set-autotyping"><span class="sl"></span></label></div>
-    <div class="set-item"><span class="set-name">Auto Recording</span><label class="ts"><input type="checkbox" id="set-autorecording"><span class="sl"></span></label></div>
-    <div class="set-item"><span class="set-name">Anti-Delete</span><label class="ts"><input type="checkbox" id="set-antidelete"><span class="sl"></span></label></div>
-    <div class="set-item"><span class="set-name">Anti-Edit</span><label class="ts"><input type="checkbox" id="set-antiedit"><span class="sl"></span></label></div>
-    <div class="set-item"><span class="set-name">Auto React</span><label class="ts"><input type="checkbox" id="set-autoreact"><span class="sl"></span></label></div>
-    <button class="btn" style="margin-top:20px" onclick="saveSettings()">Save Settings</button>
-    <button class="btn" style="margin-top:10px;background:transparent;color:var(--mut);border:1px solid var(--brd)" onclick="closeSettings()">Close</button>
-  </div>
-</div>
-<div id="toast-container"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alpha-XMD</title><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/css/intlTelInput.css"><style>:root{--b:#050505;--c:#0f0f11;--r:#27272a;--t:#fff;--m:#a1a1aa;--p:#00ff88;--g:rgba(0,255,136,.15)}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--b);color:var(--t);font-family:sans-serif;overflow-x:hidden;min-height:100vh}canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.6}h1,h2,h3,.br{font-family:'Space Grotesk',sans-serif}nav{display:flex;justify-content:space-between;align-items:center;padding:15px 5%;border-bottom:1px solid #ffffff0d;z-index:10;position:relative;backdrop-filter:blur(10px);background:#05050580}.br{font-weight:700;font-size:18px;display:flex;align-items:center;gap:8px}.br img{width:30px;border-radius:8px}.nl{display:flex;gap:15px;font-size:13px}.nl a{color:var(--m);cursor:pointer;text-decoration:none}.nl a:hover{color:var(--p)}.st{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--p);background:#00ff881a;padding:5px 12px;border-radius:20px;border:1px solid #00ff8833}.dt{width:6px;height:6px;background:var(--p);border-radius:50%;box-shadow:0 0 10px var(--p);animation:pl 2s infinite}@keyframes pl{50%{opacity:.4}}.hr{display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center;max-width:1000px;margin:0 auto;padding:40px 5%;position:relative;z-index:10}.hr h1{font-size:42px;line-height:1.1;margin-bottom:15px}.hr h1 span{color:var(--p);text-shadow:0 0 20px var(--g)}.hr p{font-size:15px;color:var(--m);line-height:1.5;margin-bottom:20px}.cd{background:#0f0f11cc;backdrop-filter:blur(20px);border:1px solid #ffffff14;border-radius:20px;padding:25px;box-shadow:0 20px 50px #00000080;min-height:400px;position:relative}.cd h3{font-size:18px;margin-bottom:15px}.tb{display:flex;background:#00000080;border-radius:10px;padding:3px;margin-bottom:15px}.tb div{flex:1;text-align:center;padding:8px;font-size:13px;cursor:pointer;border-radius:8px;color:var(--m)}.tb .ac{background:var(--p);color:#000;font-weight:700}.bt{width:100%;padding:14px;background:var(--p);color:#000;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;display:flex;justify-content:center;gap:8px}.bt:disabled{background:#333;color:#888}.sp{display:none;width:16px;height:16px;border:2px solid #0000004d;border-radius:50%;border-top-color:#000;animation:spin 1s linear infinite}@keyframes spin{100%{transform:rotate(360deg)}}.rs{margin-top:15px;background:#00ff880d;border:1px solid #00ff8833;padding:15px;border-radius:12px;text-align:center}.co{font-size:32px;font-weight:700;letter-spacing:5px;color:var(--p);margin:10px 0}.cb{background:#ffffff1a;border:1px solid var(--r);color:#fff;padding:8px 12px;border-radius:6px;cursor:pointer}.cb:hover{background:var(--p);color:#000}#qr{width:180px;height:180px;margin:10px auto;border-radius:10px;border:3px solid #fff;display:none}.ds{max-width:1000px;margin:0 auto;padding:30px 5%;position:relative;z-index:10;display:none}.ds h2{font-size:24px;margin-bottom:15px}.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px}.sc{background:var(--c);border:1px solid var(--r);border-radius:12px;padding:15px;display:flex;justify-content:space-between;align-items:center}.ft{max-width:1000px;margin:0 auto;padding:40px 5%;position:relative;z-index:10;text-align:center}.ft h2{font-size:28px;margin-bottom:30px}.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;text-align:left}.fc{background:#ffffff05;border:1px solid #ffffff0d;padding:20px;border-radius:12px}.fc h4{font-size:16px;margin-bottom:8px}.fc p{font-size:13px;color:var(--m)}.md{position:fixed;inset:0;background:#000c;backdrop-filter:blur(5px);z-index:1000;display:none;justify-content:center;align-items:center}.mb{background:var(--c);border:1px solid var(--r);width:90%;max-width:380px;border-radius:12px;padding:20px;max-height:90vh;overflow-y:auto}.si{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff0d}.ts{position:relative;width:40px;height:22px}.ts input{opacity:0;width:0;height:0}.sl{position:absolute;inset:0;background:#3f3f46;transition:.3s;border-radius:20px}.sl:before{content:"";position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;transition:.3s;border-radius:50%}input:checked+.sl{background:var(--p)}input:checked+.sl:before{transform:translateX(18px)}.ig label{display:block;font-size:11px;color:var(--m);margin:8px 0 4px}.ib{width:100%;padding:10px;background:#00000080;border:1px solid var(--r);border-radius:6px;color:#fff}.iti__flag-container{background:#00000080!important;border-radius:10px 0 0 10px!important}#ph{width:100%;padding:14px 14px 14px 80px!important;background:#00000080!important;border:1px solid var(--r)!important;border-radius:10px!important;color:#fff!important;font-size:15px!important;outline:none!important}#tc{position:fixed;bottom:15px;right:15px;z-index:9999;display:flex;flex-direction:column;gap:8px}.tt{background:var(--c);border:1px solid var(--r);border-left:4px solid var(--p);padding:12px 16px;border-radius:6px;box-shadow:0 10px 30px #000c;transform:translateX(120%);transition:transform .3s;display:flex;align-items:center;gap:8px;font-size:13px}.tt.sh{transform:translateX(0)}.tt.er{border-left-color:#ef4444}@media(max-width:800px){.hr{grid-template-columns:1fr;text-align:center}.nl{display:none}}</style></head><body><canvas id="bg"></canvas><nav><div class="br"><img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg"> Alpha-XMD</div><div class="nl"><a onclick="tab('h')">Home</a><a onclick="tab('d')">My Bots</a><a onclick="document.getElementById('ft').scrollIntoView({behavior:'smooth'})">Features</a></div><div class="st"><div class="dt" id="sd"></div><span id="st">Connecting...</span></div></nav>
+<div id="vh"><div class="hr"><div><h1>The Ultimate <span>WhatsApp Bot</span> Platform.</h1><p>Deploy a powerful multi-device WhatsApp bot in seconds. Choose Pairing Code or QR Code, manage your sessions, and customize commands.</p><div style="display:flex;gap:15px;margin-top:20px;font-size:14px;color:var(--p)"><span>🛡️ 99.9% Uptime</span><span>🔒 Secure</span></div></div><div class="cd"><div id="si"><h3>Deploy Bot</h3><div class="tb"><div class="ac" id="tc1" onclick="sm('c')">Pairing Code</div><div id="tc2" onclick="sm('q')">QR Code</div></div><div class="ig"><label>Phone Number</label><input type="tel" id="ph"></div><button class="bt" id="gb" onclick="rc()"><span id="bt">Generate Code</span><div class="sp" id="sp"></div></button></div><div id="sc" style="display:none"><h3>Link Device</h3><div class="rs"><p style="font-size:13px;color:var(--m)">Scan or enter code in WhatsApp</p><div class="co" id="cd">----</div><img id="qr" src=""><button class="cb" id="cb" onclick="cc()">📋 Copy Code</button><div style="margin-top:15px;font-size:12px;color:var(--p)">⏳ Waiting for connection...</div></div><button class="bt" style="margin-top:15px;background:transparent;border:1px solid var(--r);color:var(--m)" onclick="ru()">Cancel</button></div><div id="sn" style="display:none;text-align:center"><div style="width:60px;height:60px;background:#00ff881a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 15px;color:var(--p);font-size:30px">✔</div><h3 style="justify-content:center">Bot Connected!</h3><p style="font-size:13px;color:var(--m);margin-bottom:20px">Your session is active.</p><button class="bt" onclick="os()">⚙️ Settings</button><button class="bt" style="margin-top:10px;background:transparent;color:#ef4444;border:1px solid #ef4444" onclick="db()">Disconnect</button></div></div></div></div>
+<div id="vd" class="ds"><h2>My Sessions</h2><p style="color:var(--m);margin-bottom:20px;font-size:14px">Bots saved on this device.</p><div class="sg" id="sg"></div></div>
+<div id="ft" class="ft"><h2>Why Choose Alpha-XMD?</h2><div class="fg"><div class="fc"><h4>⚡ Lightning Fast</h4><p>Powered by Node.js and Baileys, commands execute in milliseconds.</p></div><div class="fc"><h4>🔒 Secure Sessions</h4><p>Your credentials are stored locally on the server. No third-party access.</p></div><div class="fc"><h4>⚙️ Custom Prefix</h4><p>Change your command prefix from '.' to '!' or '/' to suit your group.</p></div><div class="fc"><h4>🤖 Auto Features</h4><p>Auto-Read, Auto-Typing, Anti-Delete, and Auto-React all built-in.</p></div></div></div>
+<div class="md" id="md"><div class="mb"><h3 style="margin-bottom:15px">Bot Settings</h3><div class="si"><span>Auto Read</span><label class="ts"><input type="checkbox" id="sa"><span class="sl"></span></label></div><div class="si"><span>Auto Typing</span><label class="ts"><input type="checkbox" id="st2"><span class="sl"></span></label></div><div class="si"><span>Anti-Delete</span><label class="ts"><input type="checkbox" id="sad"><span class="sl"></span></label></div><div class="si"><span>Auto React</span><label class="ts"><input type="checkbox" id="sar"><span class="sl"></span></label></div><div class="ig"><label>Command Prefix</label><input type="text" class="ib" id="spf" maxlength="2" placeholder="."></div><button class="bt" style="margin-top:20px" onclick="ss()">Save Settings</button><button class="bt" style="margin-top:10px;background:transparent;color:var(--m);border:1px solid var(--r)" onclick="cm()">Close</button></div></div><div id="tc"></div>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/intlTelInput.min.js"></script>
 <script>
-const AU="https://itinerary-splashy-flyer.ngrok-free.dev"; let cp=""; let iti; let checkInterval;
-document.addEventListener("DOMContentLoaded", () => {
-    iti = window.intlTelInput(document.querySelector("#phone"), { utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/utils.js", initialCountry: "zw", separateDialCode: true, dropdownContainer: document.body });
-});
-function showToast(m, t='success') {
-    const c = document.getElementById('toast-container'), toast = document.createElement('div');
-    toast.className = `toast ${t}`;
-    toast.innerHTML = `<div style="color:var(--pri)">${t==='success'?'✔':'⚠'}</div><span>${m}</span>`;
-    c.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
-}
-async function us(){
-    try { const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}}); const d=await r.json();
-        if(d.status==="online"){document.getElementById('s-txt').innerText="Systems Online";document.getElementById('s-txt').style.color="var(--pri)";document.getElementById('s-dot').style.background="var(--pri)"}
-    } catch(e){document.getElementById('s-txt').innerText="Server Offline";document.getElementById('s-txt').style.color="#ef4444";document.getElementById('s-dot').style.background="#ef4444"}
-} setInterval(us,15000); us();
-async function rc(){
-    const p = iti.getNumber().replace("+", ""); if(!iti.isValidNumber()) return showToast("Invalid number.", "error"); cp=p;
-    const b=document.getElementById('gen-b'), bt=document.getElementById('b-txt'), sp=document.getElementById('sp');
-    b.disabled=true; bt.innerText="Connecting..."; sp.style.display="block";
-    try {
-        const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
-        const d=await r.json();
-        if(d.success){
-            document.getElementById('state-input').style.display='none';
-            if(d.alreadyPaired) { document.getElementById('state-connected').style.display='block'; }
-            else { document.getElementById('state-code').style.display='block'; document.getElementById('cd').innerText=d.code; startPolling(p); }
-        } else { showToast(d.error || "Failed.", "error"); b.disabled=false; bt.innerText="Generate Code"; sp.style.display="none"; }
-    } catch(e){ showToast("Network Error.", "error"); b.disabled=false; bt.innerText="Generate Code"; sp.style.display="none"; }
-}
-function copyCode() {
-    const c = document.getElementById('cd').innerText; if (c === '----') return;
-    navigator.clipboard.writeText(c.replace(/-/g, '')).then(() => showToast("Code copied!")).catch(() => showToast("Failed.", "error"));
-}
-function resetUI() {
-    clearInterval(checkInterval); document.getElementById('state-code').style.display = 'none'; document.getElementById('state-connected').style.display = 'none';
-    document.getElementById('state-input').style.display = 'block'; document.getElementById('gen-b').disabled = false;
-    document.getElementById('b-txt').innerText = "Generate Code"; document.getElementById('sp').style.display = 'none'; document.getElementById('phone').value = '';
-}
-function startPolling(phone) {
-    clearInterval(checkInterval);
-    checkInterval = setInterval(async () => {
-        try {
-            const r = await fetch(AU + `/api/status?phoneNumber=${phone}`, {headers:{'ngrok-skip-browser-warning':'true'}});
-            const d = await r.json();
-            if (d.connected) {
-                clearInterval(checkInterval); document.getElementById('state-code').style.display = 'none';
-                document.getElementById('state-connected').style.display = 'block'; showToast("Bot connected! 🎉");
-            }
-        } catch(e) {}
-    }, 3000);
-}
-async function openSettings(){
-    document.getElementById('setModal').classList.add('show');
-    try { const r = await fetch(AU+"/api/settings?phoneNumber="+cp, {headers:{'ngrok-skip-browser-warning':'true'}}); const d = await r.json();
-        document.getElementById('set-autoread').checked = d.autoread || false; document.getElementById('set-autotyping').checked = d.autotyping || false;
-        document.getElementById('set-autorecording').checked = d.autorecording || false; document.getElementById('set-antidelete').checked = d.antidelete || false;
-        document.getElementById('set-antiedit').checked = d.antiedit || false; document.getElementById('set-autoreact').checked = d.autoreact || false;
-    } catch(e) { showToast("Failed to load.", "error"); }
-}
-function closeSettings(){ document.getElementById('setModal').classList.remove('show'); }
-async function saveSettings(){
-    const s = { autoread: document.getElementById('set-autoread').checked, autotyping: document.getElementById('set-autotyping').checked, autorecording: document.getElementById('set-autorecording').checked, antidelete: document.getElementById('set-antidelete').checked, antiedit: document.getElementById('set-antiedit').checked, autoreact: document.getElementById('set-autoreact').checked };
-    try { await fetch(AU+"/api/settings", { method: 'POST', headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'}, body: JSON.stringify({phoneNumber: cp, settings: s}) }); showToast("Saved!"); closeSettings(); } catch(e) { showToast("Failed.", "error"); }
-}
-async function db(){
-    if(!confirm("Unlink device?")) return;
-    try { await fetch(AU+"/api/disconnect", { method:'POST', headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'}, body:JSON.stringify({phoneNumber:cp}) }); showToast("Disconnected."); setTimeout(() => window.location.reload(), 1500); } catch(e) { showToast("Failed.", "error"); }
-}
-</script>
-</body>
-</html>
+const $=id=>document.getElementById(id),AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="",iti,ci,cm='c';
+function tab(t){$('vh').style.display=t==='h'?'block':'none';$('vd').style.display=t==='d'?'block':'none';if(t==='d')rd()}
+const cv=$('bg'),cx=cv.getContext('2d');let ps=[];
+function ic(){cv.width=innerWidth;cv.height=innerHeight;ps=Array.from({length:40},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,s:Math.random()*2}))}
+function dc(){cx.clearRect(0,0,cv.width,cv.height);cx.fillStyle='rgba(0,255,136,0.5)';ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>cv.width)p.vx*=-1;if(p.y<0||p.y>cv.height)p.vy*=-1;cx.beginPath();cx.arc(p.x,p.y,p.s,0,Math.PI*2);cx.fill()});requestAnimationFrame(dc)}
+addEventListener('resize',ic);ic();dc();
+addEventListener("DOMContentLoaded",()=>{iti=window.intlTelInput($("ph"),{utilsScript:"https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/utils.js",initialCountry:"zw",separateDialCode:true})});
+function tm(m,t='s'){const c=$('tc'),d=document.createElement('div');d.className=`tt ${t}`;d.innerHTML=`<div style="color:var(--p)">${t==='s'?'✔':'⚠'}</div><span>${m}</span>`;c.appendChild(d);setTimeout(()=>d.classList.add('sh'),10);setTimeout(()=>{d.classList.remove('sh');setTimeout(()=>d.remove(),300)},3000)}
+async function us(){try{const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}}),d=await r.json();if(d.status==="online"){$('st').innerText="Systems Online";$('st').style.color="var(--p)";$('sd').style.background="var(--p)"}}catch(e){$('st').innerText="Server Offline";$('st').style.color="#ef4444";$('sd').style.background="#ef4444"}}setInterval(us,15000);us();
+function sm(m){cm=m;$('tc1').classList.toggle('ac',m==='c');$('tc2').classList.toggle('ac',m==='q');$('bt').innerText=m==='c'?'Generate Code':'Generate QR'}
+async function rc(){const p=iti.getNumber().replace("+","");if(!iti.isValidNumber())return tm("Invalid number.","e");cp=p;const b=$('gb'),bt=$('bt'),sp=$('sp');b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";const ep=cm==='c'?"/api/pair":"/api/qr";try{const r=await fetch(AU+ep,{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})}),d=await r.json();if(d.success){$('si').style.display='none';$('sc').style.display='block';if(d.alreadyPaired){$('sn').style.display='block';$('sc').style.display='none';sv(p)}else{if(cm==='c'){$('cd').innerText=d.code;$('qr').style.display='none';$('cb').style.display='inline-block'}else{$('cd').style.display='none';$('cb').style.display='none';$('qr').src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(d.qr)}`;$('qr').style.display='block'}pl(p)}}else{tm(d.error||"Failed.","e");ru()}}catch(e){tm("Network Error.","e");ru()}}
+function cc(){const c=$('cd').innerText;if(c==='----')return;navigator.clipboard.writeText(c.replace(/-/g,'')).then(()=>tm("Code copied!"))}
+function pl(p){clearInterval(ci);ci=setInterval(async()=>{try{const r=await fetch(AU+`/api/status?phoneNumber=${p}`,{headers:{'ngrok-skip-browser-warning':'true'}}),d=await r.json();if(d.connected){clearInterval(ci);$('sc').style.display='none';$('sn').style.display='block';tm("Bot connected! 🎉");sv(p)}}catch(e){}},3000)}
+function ru(){clearInterval(ci);$('sc').style.display='none';$('sn').style.display='none';$('si').style.display='block';$('gb').disabled=false;$('bt').innerText=cm==='c'?'Generate Code':'Generate QR';$('sp').style.display='none';$('ph').value=''}
+function sv(p){let s=JSON.parse(localStorage.getItem('ax_s')||'[]');if(!s.includes(p)){s.push(p);localStorage.setItem('ax_s',JSON.stringify(s))}}
+function rd(){const g=$('sg'),s=JSON.parse(localStorage.getItem('ax_s')||'[]');if(!s.length){g.innerHTML=`<p style="color:var(--m)">No sessions saved.</p>`;return}g.innerHTML=s.map(p=>`<div class="sc"><div><h4>+${p}</h4><p style="font-size:12px;color:var(--p)">Active Session</p></div><button class="bt" style="width:auto;padding:8px 12px;font-size:12px" onclick="cp='${p}';os()">Settings</button></div>`).join('')}
+async function os(){$('md').style.display='flex';try{const r=await fetch(AU+"/api/settings?phoneNumber="+cp,{headers:{'ngrok-skip-browser-warning':'true'}}),d=await r.json();$('sa').checked=d.autoread||false;$('st2').checked=d.autotyping||false;$('sad').checked=d.antidelete||false;$('sar').checked=d.autoreact||false;$('spf').value=d.prefix||'.'}catch(e){tm("Failed to load.","e")}}
+async function ss(){const s={autoread:$('sa').checked,autotyping:$('st2').checked,antidelete:$('sad').checked,autoreact:$('sar').checked,prefix:$('spf').value||'.'};try{await fetch(AU+"/api/settings",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp,settings:s})});tm("Saved!");cm()}catch(e){tm("Failed.","e")}}
+function cm(){$('md').style.display='none'}
+async function db(){if(!confirm("Unlink?"))return;try{await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});tm("Disconnected.");let s=JSON.parse(localStorage.getItem('ax_s')||'[]').filter(x=>x!==cp);localStorage.setItem('ax_s',JSON.stringify(s));setTimeout(()=>location.reload(),1500)}catch(e){tm("Failed.","e")}}
+</script></body></html>
