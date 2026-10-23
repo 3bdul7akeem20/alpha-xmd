@@ -4,259 +4,195 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alpha-XMD | Next-Gen WhatsApp Bot</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/css/intlTelInput.css">
 <style>
-:root{--bg:#050505;--card:#0f0f11;--brd:#27272a;--txt:#fff;--mut:#a1a1aa;--pri:#00ff88;--pri-glow:rgba(0,255,136,.15)}
+:root{--bg:#050505;--card:#0f0f11;--brd:#27272a;--txt:#fff;--mut:#a1a1aa;--pri:#00ff88;--glow:rgba(0,255,136,.15)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
-h1,h2,h3,h4,.brand{font-family:'Space Grotesk',sans-serif}
-
-.mesh{position:absolute;width:600px;height:600px;background:radial-gradient(circle,var(--pri-glow) 0%,transparent 60%);top:-200px;left:-200px;filter:blur(60px);z-index:0;pointer-events:none}
-.mesh2{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1) 0%,transparent 60%);bottom:-100px;right:-100px;filter:blur(60px);z-index:0;pointer-events:none}
-
+h1,h2,h3,.brand{font-family:'Space Grotesk',sans-serif}
+.mesh,.mesh2{position:absolute;filter:blur(60px);z-index:0;pointer-events:none}
+.mesh{width:600px;height:600px;background:radial-gradient(circle,var(--glow) 0%,transparent 60%);top:-200px;left:-200px}
+.mesh2{width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1) 0%,transparent 60%);bottom:-100px;right:-100px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5%;border-bottom:1px solid rgba(255,255,255,.05);position:relative;z-index:10;backdrop-filter:blur(10px)}
-.brand{font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px;letter-spacing:-.5px}
+.brand{font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px}
 .brand img{width:32px;height:32px;border-radius:8px}
 .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--pri);background:rgba(0,255,136,.1);padding:6px 14px;border-radius:20px;border:1px solid rgba(0,255,136,.2)}
 .dot{width:6px;height:6px;background:var(--pri);border-radius:50%;box-shadow:0 0 10px var(--pri);animation:pl 2s infinite}
 @keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
-
 .hero{display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center;max-width:1100px;margin:0 auto;padding:80px 5%;position:relative;z-index:10}
-.tag{display:inline-block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:20px;color:var(--mut)}
-.hero h1{font-size:52px;line-height:1.1;font-weight:700;margin-bottom:20px;letter-spacing:-1.5px}
-.hero h1 span{color:var(--pri);text-shadow:0 0 20px var(--pri-glow)}
-.hero p{font-size:17px;color:var(--mut);line-height:1.6;margin-bottom:35px;max-width:480px}
-.f-badges{display:flex;gap:20px;flex-wrap:wrap}
-.f-badge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
-.f-badge svg{color:var(--pri)}
-
-.card{background:rgba(15,15,17,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.5);position:relative;animation:float 6s ease-in-out infinite}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tag{display:inline-block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:20px;color:var(--mut)}
+.hero h1{font-size:52px;line-height:1.1;margin-bottom:20px}
+.hero h1 span{color:var(--pri);text-shadow:0 0 20px var(--glow)}
+.hero p{font-size:17px;color:var(--mut);line-height:1.6;margin-bottom:35px}
+.f-badges{display:flex;gap:20px;flex-wrap:wrap}.f-badge{display:flex;align-items:center;gap:8px;font-size:13px}.f-badge svg{color:var(--pri)}
+.card{background:rgba(15,15,17,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.5);min-height:380px;position:relative}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
 .card h3{font-size:20px;margin-bottom:24px;display:flex;align-items:center;gap:10px}
-
-.in-group{margin-bottom:20px}
-.in-group label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.btn{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:.3s;display:flex;justify-content:center;align-items:center;gap:10px}
-.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px var(--pri-glow)}
-.btn:disabled{background:#333;color:#888;cursor:not-allowed;transform:none;box-shadow:none}
+.in-group label{display:block;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:600;text-transform:uppercase}
+.btn{width:100%;padding:16px;background:var(--pri);color:#000;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:.3s;display:flex;justify-content:center;align-items:center;gap:10px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px var(--glow)}
+.btn:disabled{background:#333;color:#888;cursor:not-allowed}
 .sp{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-radius:50%;border-top-color:#000;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-.res{display:none;margin-top:24px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);padding:24px;border-radius:16px;text-align:center;animation:fi .3s}
-@keyframes fi{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-.code{font-size:38px;font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:8px;color:var(--pri);margin:16px 0;text-shadow:0 0 30px var(--pri-glow)}
-.mg{display:none;margin-top:24px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);padding:24px;border-radius:16px;text-align:center}
-.bd{background:transparent;border:1px solid #ef4444;color:#ef4444;margin-top:16px;padding:12px;font-size:14px}
-.bd:hover{background:rgba(239,68,68,.1);box-shadow:none}
-
-/* SETTINGS MODAL */
+#state-code,#state-connected{display:none}
+.res{margin-top:10px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);padding:24px;border-radius:16px;text-align:center}
+.code-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0}
+.code{font-size:38px;font-weight:700;letter-spacing:8px;color:var(--pri);text-shadow:0 0 30px var(--glow)}
+.copy-btn{background:rgba(255,255,255,.1);border:1px solid var(--brd);color:#fff;padding:10px;border-radius:8px;cursor:pointer;transition:.2s}
+.copy-btn:hover{background:var(--pri);color:#000}
+.waiting{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--mut);font-size:13px;margin-top:15px}
+.spinner-small{width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite}
+.success-icon{width:64px;height:64px;background:rgba(0,255,136,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:var(--pri);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,255,136,.4)}70%{box-shadow:0 0 0 20px rgba(0,255,136,0)}100%{box-shadow:0 0 0 0 rgba(0,255,136,0)}}
 .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);z-index:1000;display:none;justify-content:center;align-items:center;opacity:0;transition:.3s}
 .modal.show{display:flex;opacity:1}
-.m-box{background:var(--card);border:1px solid var(--brd);width:90%;max-width:400px;border-radius:16px;padding:24px;transform:translateY(20px);transition:.3s}
+.m-box{background:var(--card);border:1px solid var(--brd);width:90%;max-width:400px;border-radius:16px;padding:24px;transform:translateY(20px);transition:.3s;max-height:90vh;overflow-y:auto}
 .modal.show .m-box{transform:translateY(0)}
-.m-box h3{margin-bottom:20px;font-size:18px}
 .set-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-.set-item:last-child{border-bottom:none}
 .set-name{font-size:14px;font-weight:500}
-.ts{position:relative;width:44px;height:24px}
-.ts input{opacity:0;width:0;height:0}
+.ts{position:relative;width:44px;height:24px}.ts input{opacity:0;width:0;height:0}
 .sl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#3f3f46;transition:.4s;border-radius:24px}
 .sl:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.4s;border-radius:50%}
-input:checked+.sl{background:var(--pri)}
-input:checked+.sl:before{transform:translateX(20px)}
-
-/* Intl-Tel-Input Override */
-.iti { width: 100%; display: block; }
-.iti__flag-container { background: rgba(0,0,0,.5) !important; border-radius: 12px 0 0 12px !important; }
-.iti__selected-flag { background: transparent !important; padding: 0 16px !important; }
-.iti__selected-dial-code { color: #fff !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 15px !important; margin-left: 8px !important; }
-.iti__arrow { border-top-color: #fff !important; }
-.iti__country-list { background: var(--card) !important; border: 1px solid var(--brd) !important; border-radius: 8px !important; color: #fff !important; box-shadow: 0 10px 30px rgba(0,0,0,.5) !important; width: 300px !important; }
-.iti__country.iti__highlight { background: rgba(255,255,255,.1) !important; }
-.iti__dial-code { color: var(--mut) !important; }
-.iti__search-input { background: rgba(0,0,0,.5) !important; color: #fff !important; border: 1px solid var(--brd) !important; border-radius: 6px !important; padding: 10px !important; margin: 10px !important; width: calc(100% - 20px) !important; outline: none !important; }
-.iti__search-input::placeholder { color: #52525b !important; }
-#phone { width: 100%; padding: 16px 16px 16px 90px !important; background: rgba(0,0,0,.5) !important; border: 1px solid rgba(255,255,255,.1) !important; border-radius: 12px !important; color: #fff !important; font-size: 16px !important; outline: none !important; font-family: 'Space Grotesk', sans-serif !important; letter-spacing: 1px; transition: .3s; }
-#phone:focus { border-color: var(--pri) !important; box-shadow: 0 0 20px var(--pri-glow) !important; }
-
-@media(max-width:900px){
-.hero{grid-template-columns:1fr;text-align:center;gap:40px;padding:40px 5%}
-.hero h1{font-size:40px}
-.hero p{margin:0 auto 30px}
-.f-badges{justify-content:center}
-}
+input:checked+.sl{background:var(--pri)}input:checked+.sl:before{transform:translateX(20px)}
+.iti{width:100%}.iti__flag-container{background:rgba(0,0,0,.5)!important;border-radius:12px 0 0 12px!important}
+.iti__selected-flag{background:transparent!important;padding:0 16px!important}
+.iti__selected-dial-code{color:#fff!important;font-family:'Space Grotesk',sans-serif!important}
+#phone{width:100%;padding:16px 16px 16px 90px!important;background:rgba(0,0,0,.5)!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;color:#fff!important;font-size:16px!important;outline:none!important;transition:.3s}
+#phone:focus{border-color:var(--pri)!important;box-shadow:0 0 20px var(--glow)!important}
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--card);border:1px solid var(--brd);border-left:4px solid var(--pri);padding:16px 20px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translateX(120%);transition:transform .3s;display:flex;align-items:center;gap:10px}
+.toast.show{transform:translateX(0)}.toast.error{border-left-color:#ef4444}
+@media(max-width:900px){.hero{grid-template-columns:1fr;text-align:center;padding:40px 5%}.hero h1{font-size:40px}}
 </style>
 </head>
 <body>
-
-<div class="mesh"></div>
-<div class="mesh2"></div>
-
+<div class="mesh"></div><div class="mesh2"></div>
 <nav>
   <div class="brand"><img src="https://raw.githubusercontent.com/Alexio11-09/alpha-xmd/main/thumbnail/image.jpg"> Alpha-XMD</div>
   <div class="status"><div class="dot" id="s-dot"></div><span id="s-txt">Connecting...</span></div>
 </nav>
-
 <div class="hero">
   <div>
     <div class="tag">SYSTEMS ONLINE</div>
     <h1>The Ultimate <span>WhatsApp Bot</span> Platform.</h1>
-    <p>Deploy a powerful multi-device WhatsApp bot in seconds. No servers, no coding, no hassle. Just select your country, enter your number, and go.</p>
+    <p>Deploy a powerful multi-device WhatsApp bot in seconds. No servers, no coding, no hassle.</p>
     <div class="f-badges">
       <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 99.9% Uptime</div>
       <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure Session</div>
     </div>
   </div>
-
   <div class="card">
-    <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Pairing Code</h3>
-    
-    <div class="in-group" id="in-a">
-      <label>Phone Number</label>
-      <input type="tel" id="phone">
+    <div id="state-input">
+      <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Pairing Code</h3>
+      <div class="in-group"><label>Phone Number</label><input type="tel" id="phone"></div>
+      <button class="btn" id="gen-b" onclick="rc()"><span id="b-txt">Generate Code</span><div class="sp" id="sp"></div></button>
     </div>
-    
-    <button class="btn" id="gen-b" onclick="rc()">
-      <span id="b-txt">Generate Code</span>
-      <div class="sp" id="sp"></div>
-    </button>
-
-    <div class="res" id="res-b">
-      <p style="font-size:13px;color:var(--mut)">Enter in WhatsApp > Linked Devices</p>
-      <div class="code" id="cd">----</div>
+    <div id="state-code">
+      <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pri)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Link Device</h3>
+      <div class="res">
+        <p style="font-size:13px;color:var(--mut)">Enter in WhatsApp > Linked Devices</p>
+        <div class="code-wrap">
+          <div class="code" id="cd">----</div>
+          <button class="copy-btn" onclick="copyCode()" title="Copy Code"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        </div>
+        <div class="waiting"><div class="spinner-small"></div>Waiting for you to link device...</div>
+      </div>
+      <button class="btn" style="margin-top:20px;background:transparent;border:1px solid var(--brd);color:var(--mut)" onclick="resetUI()">Cancel</button>
     </div>
-
-    <div class="mg" id="mg-b">
-      <h3 style="font-size:16px;margin-bottom:5px">Already Connected</h3>
-      <p style="font-size:13px;color:var(--mut)">This number is active in the cloud.</p>
-      <button class="btn bd" onclick="db()">Disconnect Session</button>
-      <button class="btn" style="margin-top:10px; background:rgba(255,255,255,.1); color:#fff;" onclick="openSettings()">⚙️ Manage Settings</button>
+    <div id="state-connected">
+      <div class="success-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <h3 style="justify-content:center;margin-bottom:10px">Bot Connected!</h3>
+      <p style="text-align:center;font-size:13px;color:var(--mut);margin-bottom:20px">Your session is active in the cloud.</p>
+      <button class="btn" onclick="openSettings()">⚙️ Manage Settings</button>
+      <button class="btn" style="margin-top:10px;background:transparent;color:#ef4444;border:1px solid #ef4444" onclick="db()">Disconnect Session</button>
     </div>
   </div>
 </div>
-
-<!-- SETTINGS MODAL -->
 <div class="modal" id="setModal">
   <div class="m-box">
     <h3>Bot Settings</h3>
-    <div class="set-item">
-      <span class="set-name">Auto Read</span>
-      <label class="ts"><input type="checkbox" id="set-autoread"><span class="sl"></span></label>
-    </div>
-    <div class="set-item">
-      <span class="set-name">Auto Typing</span>
-      <label class="ts"><input type="checkbox" id="set-autotyping"><span class="sl"></span></label>
-    </div>
-    <div class="set-item">
-      <span class="set-name">Anti-Delete</span>
-      <label class="ts"><input type="checkbox" id="set-antidelete"><span class="sl"></span></label>
-    </div>
-    <div class="set-item">
-      <span class="set-name">Anti-Link</span>
-      <label class="ts"><input type="checkbox" id="set-antilink"><span class="sl"></span></label>
-    </div>
-    <div class="set-item">
-      <span class="set-name">Auto React</span>
-      <label class="ts"><input type="checkbox" id="set-autoreact"><span class="sl"></span></label>
-    </div>
+    <div class="set-item"><span class="set-name">Auto Read</span><label class="ts"><input type="checkbox" id="set-autoread"><span class="sl"></span></label></div>
+    <div class="set-item"><span class="set-name">Auto Typing</span><label class="ts"><input type="checkbox" id="set-autotyping"><span class="sl"></span></label></div>
+    <div class="set-item"><span class="set-name">Auto Recording</span><label class="ts"><input type="checkbox" id="set-autorecording"><span class="sl"></span></label></div>
+    <div class="set-item"><span class="set-name">Anti-Delete</span><label class="ts"><input type="checkbox" id="set-antidelete"><span class="sl"></span></label></div>
+    <div class="set-item"><span class="set-name">Anti-Edit</span><label class="ts"><input type="checkbox" id="set-antiedit"><span class="sl"></span></label></div>
+    <div class="set-item"><span class="set-name">Auto React</span><label class="ts"><input type="checkbox" id="set-autoreact"><span class="sl"></span></label></div>
     <button class="btn" style="margin-top:20px" onclick="saveSettings()">Save Settings</button>
-    <button class="btn" style="margin-top:10px; background:transparent; color:var(--mut); border:1px solid var(--brd);" onclick="closeSettings()">Close</button>
+    <button class="btn" style="margin-top:10px;background:transparent;color:var(--mut);border:1px solid var(--brd)" onclick="closeSettings()">Close</button>
   </div>
 </div>
-
+<div id="toast-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/intlTelInput.min.js"></script>
 <script>
-const AU="https://itinerary-splashy-flyer.ngrok-free.dev";let cp="";let iti;
-
+const AU="https://itinerary-splashy-flyer.ngrok-free.dev"; let cp=""; let iti; let checkInterval;
 document.addEventListener("DOMContentLoaded", () => {
-    const input = document.querySelector("#phone");
-    iti = window.intlTelInput(input, {
-        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/utils.js",
-        initialCountry: "zw",
-        separateDialCode: true,
-        dropdownContainer: document.body,
-    });
+    iti = window.intlTelInput(document.querySelector("#phone"), { utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/utils.js", initialCountry: "zw", separateDialCode: true, dropdownContainer: document.body });
 });
-
+function showToast(m, t='success') {
+    const c = document.getElementById('toast-container'), toast = document.createElement('div');
+    toast.className = `toast ${t}`;
+    toast.innerHTML = `<div style="color:var(--pri)">${t==='success'?'✔':'⚠'}</div><span>${m}</span>`;
+    c.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+}
 async function us(){
-try{
-const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}});
-const d=await r.json();
-if(d.status==="online"){
-document.getElementById('s-txt').innerText="Systems Online";
-}
-}catch(e){
-document.getElementById('s-txt').innerText="Server Offline";
-document.getElementById('s-txt').style.color="#ef4444";
-document.getElementById('s-dot').style.background="#ef4444";
-}
-}setInterval(us,15000);us();
-
+    try { const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}}); const d=await r.json();
+        if(d.status==="online"){document.getElementById('s-txt').innerText="Systems Online";document.getElementById('s-txt').style.color="var(--pri)";document.getElementById('s-dot').style.background="var(--pri)"}
+    } catch(e){document.getElementById('s-txt').innerText="Server Offline";document.getElementById('s-txt').style.color="#ef4444";document.getElementById('s-dot').style.background="#ef4444"}
+} setInterval(us,15000); us();
 async function rc(){
-const p = iti.getNumber().replace("+", ""); 
-if(!iti.isValidNumber()) return alert("Please enter a valid phone number.");
-cp=p;
-const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-a');
-b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";
-try{
-const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
-const d=await r.json();
-if(d.success){
-b.style.display='none';ia.style.display='none';
-if(d.alreadyPaired)mb.style.display='block';
-else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
-}else{
-alert(d.error||"Failed to generate code.");b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+    const p = iti.getNumber().replace("+", ""); if(!iti.isValidNumber()) return showToast("Invalid number.", "error"); cp=p;
+    const b=document.getElementById('gen-b'), bt=document.getElementById('b-txt'), sp=document.getElementById('sp');
+    b.disabled=true; bt.innerText="Connecting..."; sp.style.display="block";
+    try {
+        const r=await fetch(AU+"/api/pair",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:p})});
+        const d=await r.json();
+        if(d.success){
+            document.getElementById('state-input').style.display='none';
+            if(d.alreadyPaired) { document.getElementById('state-connected').style.display='block'; }
+            else { document.getElementById('state-code').style.display='block'; document.getElementById('cd').innerText=d.code; startPolling(p); }
+        } else { showToast(d.error || "Failed.", "error"); b.disabled=false; bt.innerText="Generate Code"; sp.style.display="none"; }
+    } catch(e){ showToast("Network Error.", "error"); b.disabled=false; bt.innerText="Generate Code"; sp.style.display="none"; }
 }
-}catch(e){
-alert("Network Error. Try again.");b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+function copyCode() {
+    const c = document.getElementById('cd').innerText; if (c === '----') return;
+    navigator.clipboard.writeText(c.replace(/-/g, '')).then(() => showToast("Code copied!")).catch(() => showToast("Failed.", "error"));
 }
+function resetUI() {
+    clearInterval(checkInterval); document.getElementById('state-code').style.display = 'none'; document.getElementById('state-connected').style.display = 'none';
+    document.getElementById('state-input').style.display = 'block'; document.getElementById('gen-b').disabled = false;
+    document.getElementById('b-txt').innerText = "Generate Code"; document.getElementById('sp').style.display = 'none'; document.getElementById('phone').value = '';
 }
-
-// Settings Logic
+function startPolling(phone) {
+    clearInterval(checkInterval);
+    checkInterval = setInterval(async () => {
+        try {
+            const r = await fetch(AU + `/api/status?phoneNumber=${phone}`, {headers:{'ngrok-skip-browser-warning':'true'}});
+            const d = await r.json();
+            if (d.connected) {
+                clearInterval(checkInterval); document.getElementById('state-code').style.display = 'none';
+                document.getElementById('state-connected').style.display = 'block'; showToast("Bot connected! 🎉");
+            }
+        } catch(e) {}
+    }, 3000);
+}
 async function openSettings(){
     document.getElementById('setModal').classList.add('show');
-    // Fetch current settings
-    try {
-        const r = await fetch(AU+"/api/settings?phoneNumber="+cp, {headers:{'ngrok-skip-browser-warning':'true'}});
-        const d = await r.json();
-        document.getElementById('set-autoread').checked = d.autoread || false;
-        document.getElementById('set-autotyping').checked = d.autotyping || false;
-        document.getElementById('set-antidelete').checked = d.antidelete || false;
-        document.getElementById('set-antilink').checked = d.antilink || false;
-        document.getElementById('set-autoreact').checked = d.autoreact || false;
-    } catch(e) {}
+    try { const r = await fetch(AU+"/api/settings?phoneNumber="+cp, {headers:{'ngrok-skip-browser-warning':'true'}}); const d = await r.json();
+        document.getElementById('set-autoread').checked = d.autoread || false; document.getElementById('set-autotyping').checked = d.autotyping || false;
+        document.getElementById('set-autorecording').checked = d.autorecording || false; document.getElementById('set-antidelete').checked = d.antidelete || false;
+        document.getElementById('set-antiedit').checked = d.antiedit || false; document.getElementById('set-autoreact').checked = d.autoreact || false;
+    } catch(e) { showToast("Failed to load.", "error"); }
 }
 function closeSettings(){ document.getElementById('setModal').classList.remove('show'); }
 async function saveSettings(){
-    const settings = {
-        autoread: document.getElementById('set-autoread').checked,
-        autotyping: document.getElementById('set-autotyping').checked,
-        antidelete: document.getElementById('set-antidelete').checked,
-        antilink: document.getElementById('set-antilink').checked,
-        autoreact: document.getElementById('set-autoreact').checked,
-    };
-    try {
-        await fetch(AU+"/api/settings", {
-            method: 'POST',
-            headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
-            body: JSON.stringify({phoneNumber: cp, settings: settings})
-        });
-        alert("Settings Saved! Restarting bot to apply changes...");
-        closeSettings();
-        // Optional: Trigger a bot restart via API if you want it to apply instantly
-    } catch(e) { alert("Failed to save settings."); }
+    const s = { autoread: document.getElementById('set-autoread').checked, autotyping: document.getElementById('set-autotyping').checked, autorecording: document.getElementById('set-autorecording').checked, antidelete: document.getElementById('set-antidelete').checked, antiedit: document.getElementById('set-antiedit').checked, autoreact: document.getElementById('set-autoreact').checked };
+    try { await fetch(AU+"/api/settings", { method: 'POST', headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'}, body: JSON.stringify({phoneNumber: cp, settings: s}) }); showToast("Saved!"); closeSettings(); } catch(e) { showToast("Failed.", "error"); }
 }
-
 async function db(){
-if(!confirm("Unlink device?"))return;
-const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
-try{
-await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
-window.location.reload();
-}catch(e){alert("Failed.");b.innerText="Disconnect";b.disabled=false}
+    if(!confirm("Unlink device?")) return;
+    try { await fetch(AU+"/api/disconnect", { method:'POST', headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'}, body:JSON.stringify({phoneNumber:cp}) }); showToast("Disconnected."); setTimeout(() => window.location.reload(), 1500); } catch(e) { showToast("Failed.", "error"); }
 }
 </script>
 </body>
