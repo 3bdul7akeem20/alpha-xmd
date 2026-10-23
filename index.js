@@ -54,7 +54,7 @@ function rateLimiter(req, res, next) {
   next();
 }
 
-// ================= BOT HANDLERS (MERGED FEATURES) =================
+// ================= BOT HANDLERS =================
 function attachHandlers(sock, phoneNumber) {
   const channelJid = `${config().newsletter.id}@newsletter`;
   const sessionSettingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
@@ -73,14 +73,12 @@ function attachHandlers(sock, phoneNumber) {
       for (const mek of chatUpdate.messages) {
         const remote = mek.key?.remoteJid;
         
-        // AutoStatus
         if (remote === "status@broadcast") {
           if (autoStatusHandler.handleStatusUpdate) await autoStatusHandler.handleStatusUpdate(sock, { messages: [mek] });
           continue;
         }
         if (!mek.message) continue;
 
-        // Channel Reactions
         if (remote === channelJid) {
           const cr = globalSettings.chreact || { enabled: false, emojis: ["💬"] };
           if (cr.enabled) {
@@ -94,7 +92,6 @@ function attachHandlers(sock, phoneNumber) {
           continue;
         }
 
-        // Fancy Terminal Logger
         try {
           const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
           const shortText = msgText.length > 60 ? msgText.substring(0, 60) + '...' : msgText;
@@ -114,10 +111,8 @@ function attachHandlers(sock, phoneNumber) {
         const m = await smsg(sock, mek);
         m.prefix = globalSettings.prefix;
         
-        // Store for Anti-Delete/Edit
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
 
-        // Admin Check
         if (m.isGroup) {
           try {
             const metadata = await sock.groupMetadata(m.chat);
@@ -127,7 +122,6 @@ function attachHandlers(sock, phoneNumber) {
           } catch { m.isAdmin = false; m.isBotAdmin = false; }
         }
 
-        // Auto Features
         if (globalSettings.autoread) { try { await sock.readMessages([mek.key]); } catch {} }
         if (globalSettings.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
         if (globalSettings.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
@@ -144,7 +138,6 @@ function attachHandlers(sock, phoneNumber) {
     } catch (err) { console.log("⚠️ Message handler:", err.message); }
   });
 
-  // Anti-Delete & Anti-Edit
   sock.ev.on("messages.update", async updates => {
     try {
       const globalSettings = loadGlobalSettings();
@@ -196,7 +189,6 @@ function attachHandlers(sock, phoneNumber) {
     } catch {}
   });
 
-  // Welcome / Goodbye
   sock.ev.on("group-participants.update", async update => {
     try {
       const { id, participants, action } = update;
@@ -212,7 +204,6 @@ function attachHandlers(sock, phoneNumber) {
     } catch {}
   });
 
-  // Follow Channel & Startup Message
   setTimeout(async () => { try { await sock.newsletterFollow(channelJid); } catch {} }, 3000);
   setTimeout(async () => {
     try {
@@ -222,9 +213,39 @@ function attachHandlers(sock, phoneNumber) {
     } catch {}
   }, 4000);
 
-  // Presence Loop
   setInterval(() => { if (sock.user) sock.sendPresenceUpdate("available").catch(() => {}); }, 20000);
 }
+
+// 🎯 Unified function to attach a socket to the main bot logic
+function attachBot(sock, phoneNumber) {
+  if (activeSockets.has(phoneNumber)) return;
+  sock.decodeJid = jid => { if (!jid) return jid; if (/:\d+@/gi.test(jid)) { const d = baileys.jidDecode(jid) || {}; return d.user && d.server ? `${d.user}@${d.server}` : jid; } return jid; };
+  activeSockets.set(phoneNumber, sock);
+  
+  sock.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === "open") { 
+      console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
+    }
+    if (connection === "close") {
+      activeSockets.delete(phoneNumber);
+      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+      if (code === 401) {
+        console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
+        const sessionPath = path.join(sessionsDir, phoneNumber);
+        if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+      } else {
+        console.log(chalk.yellow(`🔄 [${phoneNumber}] Reconnecting in 10s...`));
+        setTimeout(() => startBot(phoneNumber), 10000);
+      }
+    }
+  });
+  
+  attachHandlers(sock, phoneNumber);
+}
+
+// 🎯 EXPOSE globally so the API and plugins can use it
+global.attachBot = attachBot;
 
 // ================= SESSION STARTER =================
 async function startBot(phoneNumber) {
@@ -239,31 +260,14 @@ async function startBot(phoneNumber) {
     const { version } = await baileys.fetchLatestBaileysVersion();
     const sock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: ["Ubuntu", "Chrome", "20.0.04"] });
     
-    sock.decodeJid = jid => { if (!jid) return jid; if (/:\d+@/gi.test(jid)) { const d = baileys.jidDecode(jid) || {}; return d.user && d.server ? `${d.user}@${d.server}` : jid; } return jid; };
     sock.ev.on("creds.update", saveCreds);
-    activeSockets.set(phoneNumber, sock);
     
-    sock.ev.on("connection.update", async (update) => {
-      const { connection, lastDisconnect } = update;
-      if (connection === "open") { 
-        console.log(chalk.green(`✅ [${phoneNumber}] Bot Connected!`));
-        attachHandlers(sock, phoneNumber); 
-      }
-      if (connection === "close") {
-        activeSockets.delete(phoneNumber);
-        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-        if (code === 401) {
-          console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
-          fs.rmSync(sessionPath, { recursive: true, force: true });
-        } else {
-          setTimeout(() => startBot(phoneNumber), 10000);
-        }
-      }
-    });
+    // 🎯 Use the unified attachBot function
+    global.attachBot(sock, phoneNumber);
+    
   } catch (error) { console.log(chalk.red(`❌ Failed to start ${phoneNumber}: ${error.message}`)); }
 }
 
-// 🎯 CRUCIAL FIX: Expose startBot globally so the plugin can use it
 global.startBot = startBot;
 
 // ================= API ENDPOINTS =================
@@ -274,6 +278,7 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) return res.status(400).json({ success: false, error: "Invalid number." });
   const sessionPath = path.join(sessionsDir, phoneNumber);
+  
   if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
   if (fs.existsSync(path.join(sessionPath, "creds.json"))) { startBot(phoneNumber); return res.json({ success: true, alreadyPaired: true }); }
 
@@ -288,6 +293,7 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
     
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect } = update;
+      
       if (connection === "connecting" && !responded) {
         setTimeout(async () => {
           try {
@@ -296,8 +302,15 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
           } catch (err) { if(!responded) { responded = true; res.status(500).json({ success: false, error: err.message }); tempSock.end(undefined); } }
         }, 3000);
       }
-      if (connection === "open") setTimeout(() => startBot(phoneNumber), 3000);
-      if (connection === "close") { if (!responded) { responded = true; res.status(500).json({ success: false, error: "Closed" }); } }
+      
+      // 🎯 FIX: Pass the active socket to attachBot instead of calling startBot
+      if (connection === "open") { 
+        if (global.attachBot) global.attachBot(tempSock, phoneNumber); 
+      }
+      
+      if (connection === "close") { 
+        if (!responded) { responded = true; res.status(500).json({ success: false, error: "Closed" }); } 
+      }
     });
   } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
 });
@@ -306,6 +319,7 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber) return res.status(400).json({ success: false, error: "Invalid number." });
   const sessionPath = path.join(sessionsDir, phoneNumber);
+  
   if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
   
   fs.mkdirSync(sessionPath, { recursive: true });
@@ -320,7 +334,10 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
     tempSock.ev.on("connection.update", async (update) => {
       const { connection, qr } = update;
       if (qr && !responded) { responded = true; res.json({ success: true, phoneNumber, qr }); }
-      if (connection === "open") setTimeout(() => startBot(phoneNumber), 3000);
+      // 🎯 FIX: Pass the active socket to attachBot
+      if (connection === "open") { 
+        if (global.attachBot) global.attachBot(tempSock, phoneNumber); 
+      }
     });
     setTimeout(() => { if(!responded){ responded = true; res.status(500).json({ success: false, error: "QR timeout" }); tempSock.end(); } }, 30000);
   } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
