@@ -796,17 +796,17 @@ ${config.settings.footer}
                         }, 3000);
                     }
 
+                    // 🎯 EXACT SAME LOGIC AS /api/pair
                     if (connection === 'open') {
                         reply(`🎉 Successfully connected +${rawNumber}!\n\nYour bot is now starting... You will receive a startup message shortly.`);
                         
-                        // 🎯 FIX: Close temp socket, wait, then start main bot
                         setTimeout(() => {
-                            try { tempSock.end(undefined); } catch(e) {}
-                            setTimeout(() => {
-                                if (global.startBot) global.startBot(rawNumber);
-                                else reply("⚠️ Internal error: startBot not found.");
-                            }, 3000);
-                        }, 5000);
+                            if (global.startBot) {
+                                global.startBot(rawNumber);
+                            } else {
+                                console.log("⚠️ global.startBot is not defined in index.js!");
+                            }
+                        }, 3000);
                     }
 
                     if (connection === 'close' && !responded) {
