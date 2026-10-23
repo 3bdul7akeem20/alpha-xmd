@@ -12,11 +12,9 @@
 body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
 h1,h2,h3,h4,.brand{font-family:'Space Grotesk',sans-serif}
 
-/* Gradients */
 .mesh{position:absolute;width:600px;height:600px;background:radial-gradient(circle,var(--pri-glow) 0%,transparent 60%);top:-200px;left:-200px;filter:blur(60px);z-index:0;pointer-events:none}
 .mesh2{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(124,58,237,.1) 0%,transparent 60%);bottom:-100px;right:-100px;filter:blur(60px);z-index:0;pointer-events:none}
 
-/* Navbar */
 nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5%;border-bottom:1px solid rgba(255,255,255,.05);position:relative;z-index:10;backdrop-filter:blur(10px)}
 .brand{font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px;letter-spacing:-.5px}
 .brand img{width:32px;height:32px;border-radius:8px}
@@ -24,7 +22,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .dot{width:6px;height:6px;background:var(--pri);border-radius:50%;box-shadow:0 0 10px var(--pri);animation:pl 2s infinite}
 @keyframes pl{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* Hero */
 .hero{display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center;max-width:1100px;margin:0 auto;padding:80px 5%;position:relative;z-index:10}
 .tag{display:inline-block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:20px;color:var(--mut)}
 .hero h1{font-size:52px;line-height:1.1;font-weight:700;margin-bottom:20px;letter-spacing:-1.5px}
@@ -34,7 +31,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .f-badge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
 .f-badge svg{color:var(--pri)}
 
-/* Card */
 .card{background:rgba(15,15,17,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;box-shadow:0 30px 60px rgba(0,0,0,.5);position:relative;animation:float 6s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
@@ -48,7 +44,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .sp{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-radius:50%;border-top-color:#000;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Results */
 .res{display:none;margin-top:24px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);padding:24px;border-radius:16px;text-align:center;animation:fi .3s}
 @keyframes fi{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 .code{font-size:38px;font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:8px;color:var(--pri);margin:16px 0;text-shadow:0 0 30px var(--pri-glow)}
@@ -56,30 +51,21 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .bd{background:transparent;border:1px solid #ef4444;color:#ef4444;margin-top:16px;padding:12px;font-size:14px}
 .bd:hover{background:rgba(239,68,68,.1);box-shadow:none}
 
-/* Stats */
-.stats{display:flex;justify-content:center;gap:40px;padding:40px 5%;border-top:1px solid rgba(255,255,255,.05);margin-top:60px;position:relative;z-index:10}
-.stat{text-align:center}
-.stat-v{font-size:32px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--pri)}
-.stat-t{font-size:12px;color:var(--mut);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
-
-/* HOW IT WORKS SECTION */
-.how{max-width:1000px;margin:60px auto;padding:0 5%;text-align:center;position:relative;z-index:10}
-.how h2{font-size:32px;margin-bottom:40px}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.step{background:var(--card);border:1px solid var(--brd);padding:32px;border-radius:20px;text-align:center;transition:.3s}
-.step:hover{border-color:var(--pri)}
-.step-num{width:40px;height:40px;background:rgba(0,255,136,.1);color:var(--pri);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;margin:0 auto 20px}
-.step h3{font-size:18px;margin-bottom:10px}
-.step p{font-size:14px;color:var(--mut);line-height:1.6}
-
-/* TOAST NOTIFICATIONS */
-.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
-.toast{background:var(--card);border:1px solid var(--brd);border-left:4px solid var(--pri);padding:16px 20px;border-radius:8px;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;transform:translateX(120%);animation:slideIn .3s forwards}
-.toast.error{border-left-color:#ef4444}
-.toast.error svg{color:#ef4444}
-.toast svg{color:var(--pri)}
-@keyframes slideIn{to{transform:translateX(0)}}
-@keyframes fadeOut{to{opacity:0;transform:translateX(120%)}}
+/* SETTINGS MODAL */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);z-index:1000;display:none;justify-content:center;align-items:center;opacity:0;transition:.3s}
+.modal.show{display:flex;opacity:1}
+.m-box{background:var(--card);border:1px solid var(--brd);width:90%;max-width:400px;border-radius:16px;padding:24px;transform:translateY(20px);transition:.3s}
+.modal.show .m-box{transform:translateY(0)}
+.m-box h3{margin-bottom:20px;font-size:18px}
+.set-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.set-item:last-child{border-bottom:none}
+.set-name{font-size:14px;font-weight:500}
+.ts{position:relative;width:44px;height:24px}
+.ts input{opacity:0;width:0;height:0}
+.sl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#3f3f46;transition:.4s;border-radius:24px}
+.sl:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.4s;border-radius:50%}
+input:checked+.sl{background:var(--pri)}
+input:checked+.sl:before{transform:translateX(20px)}
 
 /* Intl-Tel-Input Override */
 .iti { width: 100%; display: block; }
@@ -100,8 +86,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
 .hero h1{font-size:40px}
 .hero p{margin:0 auto 30px}
 .f-badges{justify-content:center}
-.stats{flex-direction:column;gap:24px}
-.steps{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -123,7 +107,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
     <div class="f-badges">
       <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 99.9% Uptime</div>
       <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Secure Session</div>
-      <div class="f-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Instant Setup</div>
     </div>
   </div>
 
@@ -149,40 +132,39 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:24px 5
       <h3 style="font-size:16px;margin-bottom:5px">Already Connected</h3>
       <p style="font-size:13px;color:var(--mut)">This number is active in the cloud.</p>
       <button class="btn bd" onclick="db()">Disconnect Session</button>
+      <button class="btn" style="margin-top:10px; background:rgba(255,255,255,.1); color:#fff;" onclick="openSettings()">⚙️ Manage Settings</button>
     </div>
   </div>
 </div>
 
-<!-- HOW IT WORKS -->
-<div class="how">
-    <h2>How It Works</h2>
-    <div class="steps">
-        <div class="step">
-            <div class="step-num">1</div>
-            <h3>Enter Number</h3>
-            <p>Select your country and type your WhatsApp number securely.</p>
-        </div>
-        <div class="step">
-            <div class="step-num">2</div>
-            <h3>Get Code</h3>
-            <p>Receive an 8-digit pairing code instantly on your screen.</p>
-        </div>
-        <div class="step">
-            <div class="step-num">3</div>
-            <h3>Link Device</h3>
-            <p>Go to WhatsApp > Linked Devices, enter the code, and the bot goes live.</p>
-        </div>
+<!-- SETTINGS MODAL -->
+<div class="modal" id="setModal">
+  <div class="m-box">
+    <h3>Bot Settings</h3>
+    <div class="set-item">
+      <span class="set-name">Auto Read</span>
+      <label class="ts"><input type="checkbox" id="set-autoread"><span class="sl"></span></label>
     </div>
+    <div class="set-item">
+      <span class="set-name">Auto Typing</span>
+      <label class="ts"><input type="checkbox" id="set-autotyping"><span class="sl"></span></label>
+    </div>
+    <div class="set-item">
+      <span class="set-name">Anti-Delete</span>
+      <label class="ts"><input type="checkbox" id="set-antidelete"><span class="sl"></span></label>
+    </div>
+    <div class="set-item">
+      <span class="set-name">Anti-Link</span>
+      <label class="ts"><input type="checkbox" id="set-antilink"><span class="sl"></span></label>
+    </div>
+    <div class="set-item">
+      <span class="set-name">Auto React</span>
+      <label class="ts"><input type="checkbox" id="set-autoreact"><span class="sl"></span></label>
+    </div>
+    <button class="btn" style="margin-top:20px" onclick="saveSettings()">Save Settings</button>
+    <button class="btn" style="margin-top:10px; background:transparent; color:var(--mut); border:1px solid var(--brd);" onclick="closeSettings()">Close</button>
+  </div>
 </div>
-
-<div class="stats">
-  <div class="stat"><div class="stat-v" id="st-1">0</div><div class="stat-t">Active Bots</div></div>
-  <div class="stat"><div class="stat-v" id="st-2">0</div><div class="stat-t">Total Paired</div></div>
-  <div class="stat"><div class="stat-v" style="color:#fff">24/7</div><div class="stat-t">Cloud Uptime</div></div>
-</div>
-
-<!-- Toast Container -->
-<div class="toast-container" id="toast-box"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.1/build/js/intlTelInput.min.js"></script>
 <script>
@@ -198,30 +180,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Custom Toast Notification System
-function showToast(msg, isError = false) {
-    const box = document.getElementById('toast-box');
-    const t = document.createElement('div');
-    t.className = 'toast' + (isError ? ' error' : '');
-    t.innerHTML = isError 
-        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ${msg}`
-        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ${msg}`;
-    box.appendChild(t);
-    
-    setTimeout(() => {
-        t.style.animation = 'fadeOut .3s forwards';
-        setTimeout(() => t.remove(), 300);
-    }, 3000);
-}
-
 async function us(){
 try{
 const r=await fetch(AU+"/api/stats",{headers:{'ngrok-skip-browser-warning':'true'}});
 const d=await r.json();
 if(d.status==="online"){
 document.getElementById('s-txt').innerText="Systems Online";
-document.getElementById('st-1').innerText=d.connected||0;
-document.getElementById('st-2').innerText=d.totalPaired||d.connected||0;
 }
 }catch(e){
 document.getElementById('s-txt').innerText="Server Offline";
@@ -232,8 +196,7 @@ document.getElementById('s-dot').style.background="#ef4444";
 
 async function rc(){
 const p = iti.getNumber().replace("+", ""); 
-if(!iti.isValidNumber()) return showToast("Please enter a valid phone number.", true);
-
+if(!iti.isValidNumber()) return alert("Please enter a valid phone number.");
 cp=p;
 const b=document.getElementById('gen-b'),bt=document.getElementById('b-txt'),sp=document.getElementById('sp'),rb=document.getElementById('res-b'),mb=document.getElementById('mg-b'),ia=document.getElementById('in-a');
 b.disabled=true;bt.innerText="Connecting...";sp.style.display="block";rb.style.display="none";mb.style.display="none";
@@ -244,13 +207,47 @@ if(d.success){
 b.style.display='none';ia.style.display='none';
 if(d.alreadyPaired)mb.style.display='block';
 else{rb.style.display='block';document.getElementById('cd').innerText=d.code}
-showToast("Code generated successfully!");
 }else{
-showToast(d.error||"Failed to generate code.", true);b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+alert(d.error||"Failed to generate code.");b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
 }
 }catch(e){
-showToast("Network Error. Server might be restarting.", true);b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
+alert("Network Error. Try again.");b.disabled=false;bt.innerText="Generate Code";sp.style.display="none";
 }
+}
+
+// Settings Logic
+async function openSettings(){
+    document.getElementById('setModal').classList.add('show');
+    // Fetch current settings
+    try {
+        const r = await fetch(AU+"/api/settings?phoneNumber="+cp, {headers:{'ngrok-skip-browser-warning':'true'}});
+        const d = await r.json();
+        document.getElementById('set-autoread').checked = d.autoread || false;
+        document.getElementById('set-autotyping').checked = d.autotyping || false;
+        document.getElementById('set-antidelete').checked = d.antidelete || false;
+        document.getElementById('set-antilink').checked = d.antilink || false;
+        document.getElementById('set-autoreact').checked = d.autoreact || false;
+    } catch(e) {}
+}
+function closeSettings(){ document.getElementById('setModal').classList.remove('show'); }
+async function saveSettings(){
+    const settings = {
+        autoread: document.getElementById('set-autoread').checked,
+        autotyping: document.getElementById('set-autotyping').checked,
+        antidelete: document.getElementById('set-antidelete').checked,
+        antilink: document.getElementById('set-antilink').checked,
+        autoreact: document.getElementById('set-autoreact').checked,
+    };
+    try {
+        await fetch(AU+"/api/settings", {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
+            body: JSON.stringify({phoneNumber: cp, settings: settings})
+        });
+        alert("Settings Saved! Restarting bot to apply changes...");
+        closeSettings();
+        // Optional: Trigger a bot restart via API if you want it to apply instantly
+    } catch(e) { alert("Failed to save settings."); }
 }
 
 async function db(){
@@ -258,8 +255,8 @@ if(!confirm("Unlink device?"))return;
 const b=document.querySelector('.bd');b.innerText="Disconnecting...";b.disabled=true;
 try{
 await fetch(AU+"/api/disconnect",{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({phoneNumber:cp})});
-showToast("Session disconnected.");setTimeout(()=>window.location.reload(),1000);
-}catch(e){showToast("Failed to disconnect.", true);b.innerText="Disconnect";b.disabled=false}
+window.location.reload();
+}catch(e){alert("Failed.");b.innerText="Disconnect";b.disabled=false}
 }
 </script>
 </body>
