@@ -7,6 +7,7 @@ const chalk = require("chalk");
 const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 const config = () => require("./settings/config");
+const NodeCache = require("node-cache"); // 🎯 NEW: Fast memory cache
 
 // Hide annoying Baileys errors
 const _origErr = console.error;
@@ -21,7 +22,6 @@ const NGROK_DOMAIN = "itinerary-splashy-flyer.ngrok-free.dev";
 
 const app = express();
 app.use(express.json());
-
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning, Authorization');
@@ -30,38 +30,31 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, "public")));
-
 const sessionsDir = path.join(__dirname, "sessions");
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
 const activeSockets = new Map();
-const store = new Map(); // For Anti-Delete
+const store = new Map(); 
 let baileys;
 
-// Plugins & Handlers
+// 🎯 CACHES: Stops the bot from reading JSON files on every single message
+const msgRetryCounterCache = new NodeCache();
+const userDevicesCache = new NodeCache({ stdTTL: 3600 });
+
 let autoStatusHandler; try { autoStatusHandler = require("./plugins/autostatus"); } catch (e) { autoStatusHandler = { handleStatusUpdate: () => {} }; }
 let messageHandler; try { messageHandler = require("./message"); } catch (e) { messageHandler = async () => {}; }
 
 const funnyDeleted = ["🕵️‍♂️ Someone deleted a message, but I saved it! 🛡️", "📝 Deleted message rescued:"];
 
-// ================= RATE LIMITER =================
 const rateLimits = new Map();
 function rateLimiter(req, res, next) {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const now = Date.now();
-  const windowMs = 60 * 60 * 1000; // 1 hour
-  const maxRequests = 5; // Max 5 pair requests per hour per IP
-
   if (!rateLimits.has(ip)) rateLimits.set(ip, []);
-  const requests = rateLimits.get(ip).filter(time => now - time < windowMs);
-
-  if (requests.length >= maxRequests) {
-    return res.status(429).json({ success: false, error: "Too many requests. Please try again later." });
-  }
-
-  requests.push(now);
-  rateLimits.set(ip, requests);
+  const requests = rateLimits.get(ip).filter(time => now - time < 3600000);
+  if (requests.length >= 5) return res.status(429).json({ success: false, error: "Too many requests." });
+  requests.push(now); rateLimits.set(ip, requests);
+  if (requests.length === 0) rateLimits.delete(ip); 
   next();
 }
 
@@ -103,16 +96,13 @@ function attachHandlers(sock, phoneNumber) {
           continue;
         }
 
-        try {
+        // 🎯 SPEED FIX 1: Commented out the heavy logger. Only log commands now to save CPU.
+        const isCmd = mek.message?.conversation?.startsWith(globalSettings.prefix) || mek.message?.extendedTextMessage?.text?.startsWith(globalSettings.prefix);
+        if (isCmd) {
           const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
-          const shortText = msgText.length > 60 ? msgText.substring(0, 60) + '...' : msgText;
           const senderNumber = mek.key.participant?.split('@')[0] || mek.key.remoteJid?.split('@')[0] || 'unknown';
-          console.log(`\n${chalk.green('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓')}`);
-          console.log(`${chalk.magenta('┃')} ${chalk.magenta.bold('ALPHA-XMD LOGGER')} [${phoneNumber}]`);
-          console.log(`${chalk.magenta('┃')} ${chalk.cyan('Sender:')} ${chalk.green(senderNumber)}`);
-          console.log(`${chalk.magenta('┃')} ${chalk.cyan('Message:')} ${chalk.white(shortText)}`);
-          console.log(`${chalk.green('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛')}`);
-        } catch {}
+          console.log(`[CMD] ${phoneNumber} | ${senderNumber} | ${msgText.substring(0, 30)}`);
+        }
 
         if (mek.key.fromMe) {
           const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
@@ -121,7 +111,6 @@ function attachHandlers(sock, phoneNumber) {
 
         const m = await smsg(sock, mek);
         m.prefix = globalSettings.prefix;
-
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
 
         if (m.isGroup) {
@@ -244,6 +233,14 @@ async function startBot(phoneNumber) {
       printQRInTerminal: false,
       auth: state,
       browser: ["Ubuntu", "Chrome", "20.0.04"],
+      // 🎯 SPEED FIX 2: Caches & Timeouts to keep the connection lightning fast
+      msgRetryCounterCache,
+      userDevicesCache,
+      generateHighQualityLinkPreview: false,
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 15000,
+      syncFullHistory: false, // Stops downloading old messages on reconnect (massive speed boost)
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -255,12 +252,13 @@ async function startBot(phoneNumber) {
       if (connection === "close") {
         const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
         activeSockets.delete(phoneNumber);
+        
         if (code === 401) {
-          console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Deleting session.`));
-          fs.rmSync(sessionPath, { recursive: true, force: true });
+          console.log(chalk.red(`❌ [${phoneNumber}] Logged out. Backing up session.`));
+          try { fs.renameSync(sessionPath, sessionPath + "_backup_" + Date.now()); } catch (e) {}
         } else {
-          console.log(chalk.yellow(`🔄 [${phoneNumber}] Reconnecting in 10s...`));
-          setTimeout(() => startBot(phoneNumber), 10000);
+          console.log(chalk.yellow(`🔄 [${phoneNumber}] Reconnecting in 5s...`));
+          setTimeout(() => startBot(phoneNumber), 5000); // Sped up reconnect from 10s to 5s
         }
       }
     });
@@ -271,11 +269,9 @@ async function startBot(phoneNumber) {
   }
 }
 
-// 🎯 CRITICAL: Expose globally so the .pair plugin can start bots
 global.startBot = startBot;
 
 // ================= API ENDPOINTS =================
-
 app.get("/api/stats", (req, res) => res.json({ connected: activeSockets.size, status: "online" }));
 app.get("/api/status", (req, res) => res.json({ connected: activeSockets.has(req.query.phoneNumber) }));
 
@@ -324,30 +320,6 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
       else if (!responded) { responded = true; res.status(500).json({ success: false, error: `Closed (${code})` }); try { tempSock.end(undefined); } catch (e) {} }
     }
   });
-});
-
-app.post("/api/qr", rateLimiter, async (req, res) => {
-  const { phoneNumber } = req.body;
-  if (!phoneNumber) return res.status(400).json({ success: false, error: "Invalid number." });
-  const sessionPath = path.join(sessionsDir, phoneNumber);
-  if (activeSockets.has(phoneNumber)) return res.json({ success: true, alreadyPaired: true });
-
-  fs.mkdirSync(sessionPath, { recursive: true });
-  try {
-    const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
-    const { version } = await baileys.fetchLatestBaileysVersion();
-    const tempSock = baileys.default({ version, logger: pino({ level: "silent" }), printQRInTerminal: false, auth: state, browser: baileys.Browsers.ubuntu("Chrome") });
-
-    tempSock.ev.on("creds.update", saveCreds);
-    let responded = false;
-
-    tempSock.ev.on("connection.update", async (update) => {
-      const { connection, qr } = update;
-      if (qr && !responded) { responded = true; res.json({ success: true, phoneNumber, qr }); }
-      if (connection === "open") { setTimeout(() => startBot(phoneNumber), 3000); }
-    });
-    setTimeout(() => { if(!responded){ responded = true; res.status(500).json({ success: false, error: "QR timeout" }); tempSock.end(); } }, 30000);
-  } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
 });
 
 app.post("/api/disconnect", async (req, res) => {
@@ -401,13 +373,16 @@ app.post("/api/settings", (req, res) => {
 
     setInterval(() => {
       require('http').get(`http://localhost:${PORT}/api/stats`, () => {}).on('error', () => {});
-      console.log("💓 Self-ping to keep server awake");
     }, 10 * 60 * 1000); 
 
     console.log("📂 Loading saved bots...");
     const dirs = fs.readdirSync(sessionsDir);
     for (const dir of dirs) {
-      if (/^\d{10,15}$/.test(dir)) await startBot(dir);
+      if (/^\d{10,15}$/.test(dir)) {
+        await startBot(dir);
+        // 🎯 SPEED FIX 3: 3 second delay prevents WhatsApp from blocking the connections on restart
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
+      }
     }
     console.log("✅ All loaded.");
   });
