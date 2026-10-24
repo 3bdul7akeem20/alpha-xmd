@@ -3,6 +3,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const pino = require('pino');
+const { Boom } = require('@hapi/boom');
 const config = require("../../settings/config");
 
 const R = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -747,71 +749,69 @@ ${config.settings.footer}
             reply(`🔐 Requesting pairing code for +${rawNumber}... Please wait.`);
 
             try {
-                const { makeWASocket, Browsers, useMultiFileAuthState, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
-                const pino = require('pino');
-
+                const baileys = await import('@whiskeysockets/baileys');
                 const sessionPath = path.join(process.cwd(), 'sessions', rawNumber);
-                if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+                
+                // Clean up any previous failed attempts
+                if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+                fs.mkdirSync(sessionPath, { recursive: true });
 
-                const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-                const { version } = await fetchLatestBaileysVersion();
+                const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionPath);
+                const { version } = await baileys.fetchLatestBaileysVersion();
 
-                const tempSock = makeWASocket({
-                    auth: state,
-                    version,
-                    browser: Browsers.macOS('Chrome'),
-                    logger: pino({ level: 'silent' }),
-                    printQRInTerminal: false,
-                    connectTimeoutMs: 60000
+                const tempSock = baileys.default({
+                    version, 
+                    logger: pino({ level: "silent" }), 
+                    printQRInTerminal: false, 
+                    auth: state, 
+                    browser: baileys.Browsers.ubuntu("Chrome"),
                 });
 
-                tempSock.ev.on('creds.update', saveCreds);
+                tempSock.ev.on("creds.update", saveCreds);
                 let responded = false;
 
-                tempSock.ev.on('connection.update', async (update) => {
-                    const { connection } = update;
-
-                    if (connection === 'connecting' && !responded) {
+                tempSock.ev.on("connection.update", async (update) => {
+                    const { connection, lastDisconnect } = update;
+                    
+                    if (connection === "connecting" && !responded) {
                         setTimeout(async () => {
                             try {
                                 const code = await tempSock.requestPairingCode(rawNumber);
                                 const formatted = code.match(/.{1,4}/g)?.join("-") || code;
                                 if (!responded) {
                                     responded = true;
-                                    reply(
-                                        `✅ *Pairing Code Ready*\n\n` +
-                                        `📞 *Number:* +${rawNumber}\n` +
-                                        `🔢 *Code:* *${formatted}*\n\n` +
-                                        `⏱️ Expires in 60 seconds.\n` +
-                                        `📱 Open WhatsApp → Linked devices → Link with phone number → Enter this code.`
-                                    );
+                                    reply(`✅ *Pairing Code Ready*\n\n📞 *Number:* +${rawNumber}\n🔢 *Code:* *${formatted}*\n\n⏱️ Expires in 60 seconds.\n📱 Open WhatsApp → Linked devices → Link with phone number → Enter this code.`);
                                 }
                             } catch (err) {
-                                if (!responded) {
-                                    responded = true;
-                                    reply(`❌ Pairing failed: ${err.message || String(err)}`);
-                                    tempSock.end();
+                                if(!responded) { 
+                                    responded = true; 
+                                    reply(`❌ Pairing failed: ${err.message}`); 
+                                    try { tempSock.end(undefined); } catch (e) {} 
                                 }
                             }
                         }, 3000);
                     }
-
-                    // 🎯 EXACT SAME LOGIC AS /api/pair
-                    if (connection === 'open') {
+                    
+                    // 🎯 EXACT SAME LOGIC AS YOUR WORKING WEBSITE API
+                    if (connection === "open") { 
                         reply(`🎉 Successfully connected +${rawNumber}!\n\nYour bot is now starting... You will receive a startup message shortly.`);
-
                         setTimeout(() => {
-                            if (global.startBot) {
-                                global.startBot(rawNumber);
-                            } else {
-                                console.log("⚠️ global.startBot is not defined in index.js!");
-                            }
-                        }, 3000);
+                            if (global.startBot) global.startBot(rawNumber);
+                        }, 3000); 
                     }
-
-                    if (connection === 'close' && !responded) {
-                        responded = true;
-                        reply(`❌ Pairing timed out or closed. Please try again.`);
+                    
+                    if (connection === "close") {
+                        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+                        if (code === 515) { 
+                            setTimeout(() => {
+                                if (global.startBot) global.startBot(rawNumber);
+                            }, 5000); 
+                        } 
+                        else if (!responded) { 
+                            responded = true; 
+                            reply(`❌ Pairing closed (${code}). Please try again.`); 
+                            try { tempSock.end(undefined); } catch (e) {} 
+                        }
                     }
                 });
 
