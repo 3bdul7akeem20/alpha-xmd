@@ -5,6 +5,9 @@ node_modules/
 session/
 sessions/
 
+# Database files (Group settings, bans, etc.)
+database/
+
 # Logs
 *.log
 npm-debug.log*
