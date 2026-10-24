@@ -239,6 +239,35 @@ module.exports = async (sock, m) => {
         if (cmdName !== 'unbanuser' && cmdName !== 'unban' && isUserBanned(m.sender) && !isOwner)
             return reply(deny.banned);
 
+        // 🎯 FIXED: Calculate admin status HERE using LID and Phone Number matching
+        if (m.isGroup) {
+            try {
+                const metadata = await sock.groupMetadata(m.chat);
+                const senderJid = sock.decodeJid(m.sender);
+                const senderNumber = senderJid.split("@")[0].replace(/[^0-9]/g, "");
+                
+                m.isAdmin = metadata.participants.some(p => {
+                    const pJid = sock.decodeJid(p.id);
+                    const pNumber = pJid.split("@")[0].replace(/[^0-9]/g, "");
+                    const pLid = p.lid ? sock.decodeJid(p.lid) : null;
+                    
+                    const isMatch = pJid === senderJid || pNumber === senderNumber || pLid === senderJid;
+                    return isMatch && (p.admin === "admin" || p.admin === "superadmin" || p.admin === true);
+                });
+
+                const botJid = sock.decodeJid(sock.user?.id);
+                m.isBotAdmin = metadata.participants.some(p => {
+                    const pJid = sock.decodeJid(p.id);
+                    const isMatch = pJid === botJid || (p.lid && sock.decodeJid(p.lid) === botJid);
+                    return isMatch && (p.admin === "admin" || p.admin === "superadmin" || p.admin === true);
+                });
+            } catch (e) {
+                console.log("Admin check error:", e.message);
+                m.isAdmin = false;
+                m.isBotAdmin = false;
+            }
+        }
+
         const ctx = { args, reply, send, isOwner, isGroup: m.isGroup, isAdmin: m.isAdmin, isBotAdmin: m.isBotAdmin, config, prefix };
 
         // ---- PERMISSION CHECKS ----
@@ -290,7 +319,7 @@ module.exports.handlePairChoice = async (sock, m, number, method, reply, send) =
 
             if (method === 'code') {
                 let codeRequested = false;
-                
+
                 const requestCode = async () => {
                     if (codeRequested) return;
                     codeRequested = true;
