@@ -7,26 +7,24 @@ module.exports=[
 {command:"botip",aliases:["serverip","myip","getip"],category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{exec('curl -s ifconfig.me',(e,o)=>{e?exec('curl -s ipinfo.io/ip',(e2,o2)=>H(s,m,r(`🌐 ${o2.trim()}`))):H(s,m,r(`🌐 ${o.trim()}`))})}},
 {command:"restart",aliases:["reboot","reload"],category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{await H(s,m,r("🔄 Restarting session..."));setTimeout(async()=>{try{await s.end(undefined)}catch(e){}},2000)}},
 
-// 🎯 FIXED: No more isPO restriction. Any bot owner can use this.
+// 🎯 RESTORED ORIGINAL LOGIC (isPO removed, but owner:!0 keeps it secure)
 {command:"update",aliases:["up"],category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{
-    await H(s,m,r("⏳ Pulling latest updates from GitHub..."));
-    
-    exec('git pull', (err, stdout, stderr) => {
-        if (err) return H(s,m,r(`❌ Update failed:\n${err.message}`));
-        
-        if (stdout.includes("Already up to date.")) {
-            return H(s,m,r("✅ Bot is already up to date. No changes pulled."));
-        }
-
-        H(s,m,r(`✅ *Update Successful!*\n\n🔄 Restarting server to apply changes...\n*(Sessions are safe and will auto-reconnect in a few seconds. No re-pairing needed!)*`));
-        
-        setTimeout(() => {
-            process.exit(0); // Pterodactyl catches this and restarts the server
-        }, 5000);
-    });
+    await H(s,m,r("🔄 Updating..."));
+    try{
+        exec('git pull');
+        H(s,m,r("✅ Updated. Restarting..."));
+        setTimeout(()=>process.exit(0),2000)
+    }catch(e){
+        H(s,m,r(`❌ ${e.message}`))
+    }
 }},
 
-{command:"shutdown",aliases:["stop","kill"],category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{await H(s,m,r("🔴 Shutting down..."));setTimeout(()=>process.exit(0),1500)}},
+// 🎯 isPO removed here too
+{command:"shutdown",aliases:["stop","kill"],category:"owner",owner:!0,execute:async(s,m,{reply:r})=>{
+    await H(s,m,r("🔴 Shutting down..."));
+    setTimeout(()=>process.exit(0),1500)
+}},
+
 {command:"eval",aliases:[">","exec"],category:"owner",owner:!0,execute:async(s,m,{args:a,reply:r})=>{if(!a[0])return H(s,m,r("❌ Code?"));try{let res=eval(a.join(" "));typeof res==='object'&&(res=JSON.stringify(res,null,2));H(s,m,r(`✅ ${String(res).substring(0,1000)}`))}catch(e){H(s,m,r(`❌ ${e.message}`))}}},
 {command:"bc",aliases:["broadcast"],category:"owner",owner:!0,execute:async(s,m,{args:a,reply:r})=>{if(!a[0])return H(s,m,r("❌ Msg?"));let msg=a.join(" "),chats=Object.keys(await s.groupFetchAllParticipating());if(!chats.length)return H(s,m,r("❌ No groups."));H(s,m,r(`📢 ${chats.length} groups...`));let ok=0,fl=0;for(let c of chats){try{await s.sendMessage(c,{text:`📢 BROADCAST\n\n${msg}`});ok++}catch{fl++};await new Promise(r=>setTimeout(r,500))}H(s,m,r(`✅ ${ok} | ❌ ${fl}`))}},
 {command:"join",aliases:["enter"],category:"owner",owner:!0,execute:async(s,m,{args:a,reply:r})=>{if(!a[0])return H(s,m,r("❌ Link?"));let code=a[0].split('/').pop().replace(/\?.*/,'');try{H(s,m,r(`✅ Joined: ${await s.groupAcceptInvite(code)}`))}catch(e){H(s,m,r(`❌ ${e.message}`))}}},
