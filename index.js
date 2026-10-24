@@ -7,7 +7,7 @@ const chalk = require("chalk");
 const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 const config = () => require("./settings/config");
-const NodeCache = require("node-cache"); // 🎯 NEW: Fast memory cache
+const NodeCache = require("node-cache"); // 🎯 Requires: npm install node-cache
 
 // Hide annoying Baileys errors
 const _origErr = console.error;
@@ -96,7 +96,6 @@ function attachHandlers(sock, phoneNumber) {
           continue;
         }
 
-        // 🎯 SPEED FIX 1: Commented out the heavy logger. Only log commands now to save CPU.
         const isCmd = mek.message?.conversation?.startsWith(globalSettings.prefix) || mek.message?.extendedTextMessage?.text?.startsWith(globalSettings.prefix);
         if (isCmd) {
           const msgText = mek.message?.conversation || mek.message?.extendedTextMessage?.text || '[Media]';
@@ -233,14 +232,13 @@ async function startBot(phoneNumber) {
       printQRInTerminal: false,
       auth: state,
       browser: ["Ubuntu", "Chrome", "20.0.04"],
-      // 🎯 SPEED FIX 2: Caches & Timeouts to keep the connection lightning fast
       msgRetryCounterCache,
       userDevicesCache,
       generateHighQualityLinkPreview: false,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 15000,
-      syncFullHistory: false, // Stops downloading old messages on reconnect (massive speed boost)
+      syncFullHistory: false,
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -258,7 +256,7 @@ async function startBot(phoneNumber) {
           try { fs.renameSync(sessionPath, sessionPath + "_backup_" + Date.now()); } catch (e) {}
         } else {
           console.log(chalk.yellow(`🔄 [${phoneNumber}] Reconnecting in 5s...`));
-          setTimeout(() => startBot(phoneNumber), 5000); // Sped up reconnect from 10s to 5s
+          setTimeout(() => startBot(phoneNumber), 5000);
         }
       }
     });
@@ -380,7 +378,7 @@ app.post("/api/settings", (req, res) => {
     for (const dir of dirs) {
       if (/^\d{10,15}$/.test(dir)) {
         await startBot(dir);
-        // 🎯 SPEED FIX 3: 3 second delay prevents WhatsApp from blocking the connections on restart
+        // 🎯 Delay prevents WhatsApp from blocking connections on mass restart
         await new Promise(resolve => setTimeout(resolve, 3000)); 
       }
     }
