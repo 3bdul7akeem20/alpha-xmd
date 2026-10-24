@@ -747,15 +747,14 @@ ${config.settings.footer}
             reply(`🔐 Requesting pairing code for +${rawNumber}... Please wait.`);
 
             try {
-                // 🎯 USE GLOBAL BAILEYS (Fix for Hanging)
                 if (!global.baileys) return reply("❌ Bot engine not fully loaded yet. Please wait a few seconds and try again.");
                 
                 const { makeWASocket, Browsers, useMultiFileAuthState, fetchLatestBaileysVersion } = global.baileys;
                 const pino = require('pino');
                 
-                const sessionPath = path.join(process.cwd(), 'sessions', rawNumber);
+                // 🎯 FIX: Point to the correct sessions folder
+                const sessionPath = path.join(__dirname, '..', 'sessions', rawNumber);
                 
-                // Wipe any old broken sessions for this number
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
                 fs.mkdirSync(sessionPath, { recursive: true });
 
@@ -799,7 +798,7 @@ ${config.settings.footer}
                                 if (!responded) {
                                     responded = true;
                                     reply(`❌ Pairing failed: ${err.message || String(err)}`);
-                                    tempSock.end();
+                                    try { tempSock.ws.close(); } catch(e){}
                                 }
                             }
                         }, 3000);
@@ -809,9 +808,8 @@ ${config.settings.footer}
                         console.log(`[PAIR] Successfully linked ${rawNumber}! Waiting 5s for creds to save...`);
                         reply(`🎉 Successfully connected +${rawNumber}!\n\nYour bot is now starting... You will receive a startup message shortly.`);
                         
-                        // 🎯 WAIT 5 SECONDS FOR WHATSAPP TO SAVE CREDS, THEN CLOSE, THEN WAIT 3 SECONDS, THEN START.
                         setTimeout(() => {
-                            try { tempSock.end(undefined); } catch(e) {}
+                            try { if(tempSock.ws) tempSock.ws.close(); } catch(e) {}
                             console.log(`[PAIR] Temp socket closed. Starting main bot in 3s...`);
                             
                             setTimeout(() => {
