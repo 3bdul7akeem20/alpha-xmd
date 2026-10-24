@@ -747,18 +747,12 @@ ${config.settings.footer}
             reply(`🔐 Requesting pairing code for +${rawNumber}... Please wait.`);
 
             try {
-                if (!global.baileys) return reply("❌ Bot engine not fully loaded yet. Please wait a few seconds and try again.");
-                
-                const { makeWASocket, Browsers, useMultiFileAuthState, fetchLatestBaileysVersion } = global.baileys;
+                const { makeWASocket, Browsers, useMultiFileAuthState, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
                 const pino = require('pino');
-                
-                // 🎯 FIX: Point to the correct sessions folder
-                const sessionPath = path.join(__dirname, '..', 'sessions', rawNumber);
-                
-                if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-                fs.mkdirSync(sessionPath, { recursive: true });
 
-                console.log(`[PAIR] Generating temp socket for ${rawNumber}...`);
+                const sessionPath = path.join(process.cwd(), 'sessions', rawNumber);
+                if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+
                 const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
                 const { version } = await fetchLatestBaileysVersion();
 
@@ -775,10 +769,9 @@ ${config.settings.footer}
                 let responded = false;
 
                 tempSock.ev.on('connection.update', async (update) => {
-                    const { connection, lastDisconnect } = update;
+                    const { connection } = update;
 
                     if (connection === 'connecting' && !responded) {
-                        console.log(`[PAIR] Socket connecting, requesting code...`);
                         setTimeout(async () => {
                             try {
                                 const code = await tempSock.requestPairingCode(rawNumber);
@@ -794,39 +787,31 @@ ${config.settings.footer}
                                     );
                                 }
                             } catch (err) {
-                                console.log(`[PAIR] Code request failed:`, err.message);
                                 if (!responded) {
                                     responded = true;
                                     reply(`❌ Pairing failed: ${err.message || String(err)}`);
-                                    try { tempSock.ws.close(); } catch(e){}
+                                    tempSock.end();
                                 }
                             }
                         }, 3000);
                     }
 
+                    // 🎯 EXACT SAME LOGIC AS /api/pair
                     if (connection === 'open') {
-                        console.log(`[PAIR] Successfully linked ${rawNumber}! Waiting 5s for creds to save...`);
                         reply(`🎉 Successfully connected +${rawNumber}!\n\nYour bot is now starting... You will receive a startup message shortly.`);
-                        
+
                         setTimeout(() => {
-                            try { if(tempSock.ws) tempSock.ws.close(); } catch(e) {}
-                            console.log(`[PAIR] Temp socket closed. Starting main bot in 3s...`);
-                            
-                            setTimeout(() => {
-                                if (global.startBot) global.startBot(rawNumber);
-                                else console.log("⚠️ global.startBot not found!");
-                            }, 3000);
-                            
-                        }, 5000);
+                            if (global.startBot) {
+                                global.startBot(rawNumber);
+                            } else {
+                                console.log("⚠️ global.startBot is not defined in index.js!");
+                            }
+                        }, 3000);
                     }
 
-                    if (connection === 'close') {
-                        const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-                        console.log(`[PAIR] Socket closed. Code: ${code}`);
-                        if (!responded) {
-                            responded = true;
-                            reply(`❌ Pairing timed out or closed (${code}). Please try again.`);
-                        }
+                    if (connection === 'close' && !responded) {
+                        responded = true;
+                        reply(`❌ Pairing timed out or closed. Please try again.`);
                     }
                 });
 
