@@ -32,11 +32,10 @@ const sessionsDir = path.join(__dirname, "sessions");
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
 const activeSockets = new Map();
-const store = new Map(); // For Anti-Delete
+const store = new Map();
 let baileys;
 
-// 🎯 EXPOSE BAILEYS GLOBALLY FOR PLUGINS
-global.baileys = baileys;
+global.baileys = null; // Will be set below
 
 let autoStatusHandler; try { autoStatusHandler = require("./plugins/autostatus"); } catch (e) { autoStatusHandler = { handleStatusUpdate: () => {} }; }
 let messageHandler; try { messageHandler = require("./message"); } catch (e) { messageHandler = async () => {}; }
@@ -55,7 +54,6 @@ function rateLimiter(req, res, next) {
   next();
 }
 
-// ================= BOT HANDLERS =================
 function attachHandlers(sock, phoneNumber) {
   const channelJid = `${config().newsletter.id}@newsletter`;
   const sessionSettingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
@@ -276,15 +274,15 @@ app.post("/api/pair", rateLimiter, async (req, res) => {
           try {
             const code = await tempSock.requestPairingCode(phoneNumber);
             if (!responded) { responded = true; res.json({ success: true, phoneNumber, code: code.match(/.{1,4}/g)?.join("-") || code }); }
-          } catch (err) { if(!responded) { responded = true; res.status(500).json({ success: false, error: err.message }); tempSock.end(undefined); } }
+          } catch (err) { if(!responded) { responded = true; res.status(500).json({ success: false, error: err.message }); tempSock.ws.close(); } }
         }, 3000);
       }
       
       if (connection === "open") { 
         setTimeout(() => {
-            try { tempSock.end(undefined); } catch(e){}
+            try { tempSock.ws.close(); } catch(e){} // 🎯 FIX: Close WS, don't logout
             setTimeout(() => startBot(phoneNumber), 3000);
-        }, 5000); // Wait 5s for WhatsApp to save creds, then close, then wait 3s, then start.
+        }, 5000); 
       }
       
       if (connection === "close") { 
@@ -314,12 +312,12 @@ app.post("/api/qr", rateLimiter, async (req, res) => {
       if (qr && !responded) { responded = true; res.json({ success: true, phoneNumber, qr }); }
       if (connection === "open") { 
         setTimeout(() => {
-            try { tempSock.end(undefined); } catch(e){}
+            try { tempSock.ws.close(); } catch(e){}
             setTimeout(() => startBot(phoneNumber), 3000);
         }, 5000);
       }
     });
-    setTimeout(() => { if(!responded){ responded = true; res.status(500).json({ success: false, error: "QR timeout" }); tempSock.end(); } }, 30000);
+    setTimeout(() => { if(!responded){ responded = true; res.status(500).json({ success: false, error: "QR timeout" }); tempSock.ws.close(); } }, 30000);
   } catch (error) { res.status(500).json({ success: false, error: "Init failed." }); }
 });
 
