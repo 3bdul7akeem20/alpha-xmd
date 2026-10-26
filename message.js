@@ -5,7 +5,7 @@ const config = require("./settings/config");
 
 const clean = (jid) => { if (!jid) return ""; try { return jid.toString().replace(/[^0-9]/g, ""); } catch { return ""; } };
 
-// 🎯 HELPER: BULLETPROOF ADMIN CHECK (Handles LID and Phone Number)
+// 🎯 BULLETPROOF ADMIN CHECK (Handles LID, PhoneNumber, ID, and JID)
 async function checkAdmin(sock, chatId, senderId, botId) {
     try {
         const metadata = await sock.groupMetadata(chatId);
@@ -18,22 +18,22 @@ async function checkAdmin(sock, chatId, senderId, botId) {
         let isBotAdmin = false;
 
         for (const p of participants) {
-            const pId = p.id || '';
-            const pLid = p.lid || '';
-            
-            const pIdBase = pId.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
-            const pLidBase = pLid.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+            const pIds = [p.id, p.lid, p.phoneNumber, p.jid].filter(Boolean); 
+            let isSenderMatch = false;
+            let isBotMatch = false;
 
-            const isSenderMatch = (pId === senderId || pLid === senderId || pIdBase === senderBase || pLidBase === senderBase);
-            const isBotMatch = (pId === botId || pLid === botId || pIdBase === botBase || pLidBase === botBase);
+            for (const pId of pIds) {
+                const pBase = pId.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+                if (pId === senderId || pBase === senderBase) isSenderMatch = true;
+                if (pId === botId || pBase === botBase) isBotMatch = true;
+            }
 
-            if (isSenderMatch && (p.admin === 'admin' || p.admin === 'superadmin')) isSenderAdmin = true;
-            if (isBotMatch && (p.admin === 'admin' || p.admin === 'superadmin')) isBotAdmin = true;
+            const isAdmin = (p.admin === 'admin' || p.admin === 'superadmin');
+            if (isSenderMatch && isAdmin) isSenderAdmin = true;
+            if (isBotMatch && isAdmin) isBotAdmin = true;
         }
-
         return { isSenderAdmin, isBotAdmin };
     } catch (e) {
-        console.log("Admin check error:", e.message);
         return { isSenderAdmin: false, isBotAdmin: false };
     }
 }
@@ -157,34 +157,15 @@ commands.push({
                 `.antidelete react on/off`);
         }
 
-        if (sub === 'on' || sub === 'off') {
-            cfg.enabled = sub === 'on';
-        } else if (sub === 'mode') {
-            const mode = args[1]?.toLowerCase();
-            if (['chat', 'owner', 'both'].includes(mode)) {
-                cfg.mode = mode;
-            } else {
-                return reply("❌ Invalid mode. Use: chat, owner, both");
-            }
-        } else if (sub === 'style') {
-            const style = args[1]?.toLowerCase();
-            if (['fancy', 'simple'].includes(style)) {
-                cfg.style = style;
-            } else {
-                return reply("❌ Invalid style. Use: fancy, simple");
-            }
-        } else if (sub === 'react') {
-            const react = args[1]?.toLowerCase();
-            if (react === 'on') cfg.react = true;
-            else if (react === 'off') cfg.react = false;
-            else return reply("❌ Use: react on/off");
-        } else {
-            return reply("❌ Unknown option. Use on/off, mode, style, react");
-        }
+        if (sub === 'on' || sub === 'off') { cfg.enabled = sub === 'on'; } 
+        else if (sub === 'mode') { const mode = args[1]?.toLowerCase(); if (['chat', 'owner', 'both'].includes(mode)) cfg.mode = mode; else return reply("❌ Invalid mode."); } 
+        else if (sub === 'style') { const style = args[1]?.toLowerCase(); if (['fancy', 'simple'].includes(style)) cfg.style = style; else return reply("❌ Invalid style."); } 
+        else if (sub === 'react') { const react = args[1]?.toLowerCase(); if (react === 'on') cfg.react = true; else if (react === 'off') cfg.react = false; else return reply("❌ Use: react on/off"); } 
+        else { return reply("❌ Unknown option."); }
 
         g.antidelete = cfg;
         setGlobalSettings(g);
-        reply(`✅ Antidelete updated:\nEnabled: ${cfg.enabled ? 'ON' : 'OFF'}, Mode: ${cfg.mode}, Style: ${cfg.style}, React: ${cfg.react ? 'ON' : 'OFF'}`);
+        reply(`✅ Antidelete updated!`);
     }
 });
 
@@ -216,48 +197,52 @@ module.exports = async (sock, m) => {
         if (!m.text) return;
 
         const prefix = config.prefix || ".";
+        
+        // 🎯 RESTORED: AUTO FEATURES & MODERATION FOR NON-COMMANDS
         if (!m.text.startsWith(prefix)) {
-            // ANTIBADWORD
-            if (m.isGroup && m.text && containsBadWord(m.text, m.chat)) {
-                const adminStatus = await checkAdmin(sock, m.chat, m.sender, sock.user.id);
-                if (adminStatus.isBotAdmin) try { await sock.sendMessage(m.chat, { delete: m.key }); } catch {}
-                const w = `🤬 Watch your language, @${m.sender.split('@')[0]}! That word is banned.`;
-                await sock.sendMessage(m.chat, { text: w, mentions:[m.sender] }, { quoted: m });
-                return;
-            }
-            // ANTILINK
             if (m.isGroup && m.text) {
                 const gs = getGroupSettings(m.chat);
+                
+                // Auto Badword
+                if (containsBadWord(m.text, m.chat)) {
+                    if (m.isBotAdmin) try { await sock.sendMessage(m.chat, { delete: m.key }); } catch {}
+                    await sock.sendMessage(m.chat, { text: `🤬 Watch your language, @${m.sender.split('@')[0]}!`, mentions:[m.sender] }, { quoted: m });
+                    return;
+                }
+                
+                // Auto Link
                 if (gs.antilink) {
                     const mode = gs.antilinkMode || 'admins';
                     const action = gs.antilinkAction || 'delete';
-                    const adminStatus = await checkAdmin(sock, m.chat, m.sender, sock.user.id);
-                    
-                    let allowed = false;
-                    if (mode === 'owner') { try { const meta = await sock.groupMetadata(m.chat); allowed = (meta.owner === m.sender); } catch { allowed = false; } }
-                    else allowed = adminStatus.isSenderAdmin;
+                    let allowed = (mode === 'admins' && m.isAdmin) || (mode === 'owner' && m.isOwner);
                     
                     if (!allowed && containsLink(m.text)) {
                         if (action === 'delete') {
-                            if (adminStatus.isBotAdmin) try { await sock.sendMessage(m.chat, { delete: m.key }); } catch {}
-                            else { try { const meta = await sock.groupMetadata(m.chat); await sock.sendMessage(m.chat, { text: `🙏 @${meta.owner.split('@')[0]} make me admin to delete links.`, mentions:[meta.owner] }, { quoted: m }); } catch {} }
-                            const warn = `🔗 Links not allowed, @${m.sender.split('@')[0]}. Message deleted.`;
-                            await sock.sendMessage(m.chat, { text: warn, mentions:[m.sender] }, { quoted: m });
+                            if (m.isBotAdmin) try { await sock.sendMessage(m.chat, { delete: m.key }); } catch {}
+                            await sock.sendMessage(m.chat, { text: `🔗 Links not allowed, @${m.sender.split('@')[0]}.`, mentions:[m.sender] }, { quoted: m });
                         } else if (action === 'warn') {
-                            const warn = `⚠️ @${m.sender.split('@')[0]}, no links please.`;
-                            await sock.sendMessage(m.chat, { text: warn, mentions:[m.sender] }, { quoted: m });
+                            await sock.sendMessage(m.chat, { text: `⚠️ @${m.sender.split('@')[0]}, no links please.`, mentions:[m.sender] }, { quoted: m });
                         } else if (action === 'kick') {
-                            if (adminStatus.isBotAdmin) try { await sock.groupParticipantsUpdate(m.chat, [m.sender], 'remove'); } catch {}
-                            else { try { const meta = await sock.groupMetadata(m.chat); await sock.sendMessage(m.chat, { text: `🙏 @${meta.owner.split('@')[0]} make me admin to kick link spammers.`, mentions:[meta.owner] }, { quoted: m }); } catch {} }
+                            if (m.isBotAdmin) try { await sock.groupParticipantsUpdate(m.chat, [m.sender], 'remove'); } catch {}
                         }
                         return;
                     }
                 }
             }
+
+            // Auto-Read / Auto-Typing / Auto-Recording / Auto-React
+            const gs = getGlobalSettings();
+            if (gs.autoread) { try { await sock.readMessages([m.key]); } catch {} }
+            if (gs.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
+            if (gs.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
+            if (gs.autoreact) {
+                const emojis = ["🔥", "😂", "😍", "😎", "🤖", "⚡", "💯", "👀", "🥶", "😈"];
+                try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: m.key } }); } catch {}
+            }
             return;
         }
 
-        // COMMAND
+        // COMMAND EXECUTION
         const args = m.text.slice(prefix.length).trim().split(/ +/);
         const cmdName = args.shift().toLowerCase();
         const command = commands.find(c => c.command === cmdName || (c.aliases && c.aliases.includes(cmdName)));
@@ -276,18 +261,25 @@ module.exports = async (sock, m) => {
         if (cmdName !== 'unbanuser' && cmdName !== 'unban' && isUserBanned(m.sender) && !isOwner)
             return reply(deny.banned);
 
-        // 🎯 EXACT FLOW YOU REQUESTED
-        if (command.admin) {
+        // 🎯 CALCULATE ADMIN STATUS FOR ALL COMMANDS (Fixes 'staff' and passes accurate context)
+        let isSenderAdmin = false;
+        let isBotAdmin = false;
+        
+        if (m.isGroup) {
             const adminStatus = await checkAdmin(sock, m.chat, m.sender, sock.user.id);
-            
-            // 1. Bot needs to be admin FIRST
-            if (!adminStatus.isBotAdmin) return reply(deny.botAdmin); 
-            
-            // 2. Then sender needs to be admin (or bot owner bypass)
-            if (!adminStatus.isSenderAdmin && !isOwner) return reply(deny.admin); 
+            isSenderAdmin = adminStatus.isSenderAdmin;
+            isBotAdmin = adminStatus.isBotAdmin;
+            m.isAdmin = isSenderAdmin;     // Update m object for plugins
+            m.isBotAdmin = isBotAdmin;     // Update m object for plugins
         }
 
-        const ctx = { args, reply, send, isOwner, isGroup: m.isGroup, isAdmin: command.admin ? true : false, isBotAdmin: command.admin ? true : false, config, prefix };
+        // 🎯 EXACT ADMIN FLOW YOU REQUESTED
+        if (command.admin) {
+            if (!isBotAdmin) return reply(deny.botAdmin); 
+            if (!isSenderAdmin && !isOwner) return reply(deny.admin); 
+        }
+
+        const ctx = { args, reply, send, isOwner, isGroup: m.isGroup, isAdmin: isSenderAdmin, isBotAdmin: isBotAdmin, config, prefix };
 
         // ---- PERMISSION CHECKS ----
         if (command.owner && !isOwner) return reply(deny.owner);
