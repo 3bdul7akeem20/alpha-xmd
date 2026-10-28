@@ -7,13 +7,12 @@ const chalk = require("chalk");
 const { Boom } = require("@hapi/boom");
 const { smsg } = require("./library/serialize");
 const config = () => require("./settings/config");
-const NodeCache = require("node-cache"); // 🎯 Requires: npm install node-cache
 
-// Hide annoying Baileys errors
+// Hide Baileys errors
 const _origErr = console.error;
 console.error = (...a) => {
   const m = a.join(" ");
-  if (m.includes("Bad MAC") || m.includes("Session error") || m.includes("verifyMAC") || m.includes("Failed to decrypt") || m.includes("decryptWithSessions")) return;
+  if (m.includes("Bad MAC") || m.includes("Session error") || m.includes("verifyMAC") || m.includes("Failed to decrypt") || m.includes("decryptWithSessions") || m.includes("closed session")) return;
   _origErr(...a);
 };
 
@@ -37,12 +36,16 @@ const activeSockets = new Map();
 const store = new Map(); 
 let baileys;
 
-// 🎯 CACHES: Stops the bot from reading JSON files on every single message
-const msgRetryCounterCache = new NodeCache();
-const userDevicesCache = new NodeCache({ stdTTL: 3600 });
-
 let autoStatusHandler; try { autoStatusHandler = require("./plugins/autostatus"); } catch (e) { autoStatusHandler = { handleStatusUpdate: () => {} }; }
-let messageHandler; try { messageHandler = require("./message"); } catch (e) { messageHandler = async () => {}; }
+
+let messageHandler; 
+try { 
+    messageHandler = require("./message"); 
+    console.log("✅ Message Handler loaded successfully!");
+} catch (e) { 
+    console.log("❌ FAILED TO LOAD message.js:", e.message); 
+    messageHandler = async () => {}; 
+}
 
 const funnyDeleted = ["🕵️‍♂️ Someone deleted a message, but I saved it! 🛡️", "📝 Deleted message rescued:"];
 
@@ -58,13 +61,12 @@ function rateLimiter(req, res, next) {
   next();
 }
 
-// ================= RICH BOT HANDLERS =================
 function attachHandlers(sock, phoneNumber) {
   const channelJid = `${config().newsletter.id}@newsletter`;
   const sessionSettingsPath = path.join(sessionsDir, phoneNumber, "settings.json");
 
   const loadGlobalSettings = () => {
-    let defaults = { autoread: false, autotyping: false, autorecording: false, autoreact: false, antidelete: false, antiedit: false, prefix: "." };
+    let defaults = { autoread: false, autotyping: false, autorecording: false, autoreact: false, antidelete: false, antiedit: false, chreact: { enabled: false, emojis: ["💬"] }, prefix: "." };
     try { if(fs.existsSync(sessionSettingsPath)) return { ...defaults, ...JSON.parse(fs.readFileSync(sessionSettingsPath, "utf8")) }; } catch {}
     return defaults;
   };
@@ -81,16 +83,29 @@ function attachHandlers(sock, phoneNumber) {
           if (autoStatusHandler.handleStatusUpdate) await autoStatusHandler.handleStatusUpdate(sock, { messages: [mek] });
           continue;
         }
+        
+        // 🎯 If decryption fails, mek.message will be null. Skip it.
         if (!mek.message) continue;
 
+        // Channel Reactions
         if (remote === channelJid) {
           const cr = globalSettings.chreact || { enabled: false, emojis: ["💬"] };
           if (cr.enabled) {
             for (const emoji of cr.emojis || []) {
               try {
-                if (sock.newsletterReact) await sock.newsletterReact(channelJid, mek.key.id, emoji);
+                if (sock.newsletterReact) {
+                  await sock.newsletterReact(channelJid, mek.key.id, emoji);
+                } else {
+                  await sock.relayMessage(channelJid, {
+                    reactionMessage: {
+                      key: { remoteJid: channelJid, id: mek.key.id, fromMe: false },
+                      text: emoji,
+                      senderTimestampMs: Date.now()
+                    }
+                  }, {});
+                }
                 await new Promise(r => setTimeout(r, 1000));
-              } catch {}
+              } catch (e) {}
             }
           }
           continue;
@@ -110,27 +125,8 @@ function attachHandlers(sock, phoneNumber) {
 
         const m = await smsg(sock, mek);
         m.prefix = globalSettings.prefix;
+        m.globalSettings = globalSettings; 
         store.set(mek.key.id, { text: m.text || "", message: mek.message, sender: m.sender, pushName: m.pushName || null });
-
-        if (m.isGroup) {
-          try {
-            const metadata = await sock.groupMetadata(m.chat);
-            const sender = sock.decodeJid(m.sender);
-            m.isAdmin = metadata.participants.some(p => sock.decodeJid(p.id).split("@")[0] === sender.split("@")[0] && p.admin);
-            m.isBotAdmin = metadata.participants.some(p => sock.decodeJid(p.id) === sock.decodeJid(sock.user?.id) && p.admin);
-          } catch { m.isAdmin = false; m.isBotAdmin = false; }
-        }
-
-        if (globalSettings.autoread) { try { await sock.readMessages([mek.key]); } catch {} }
-        if (globalSettings.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
-        if (globalSettings.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
-        if (globalSettings.autoreact) {
-          const txt = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
-          if (!txt.startsWith(globalSettings.prefix)) {
-            const emojis = ["🔥", "😂", "😍", "😎", "🤖", "⚡", "💯", "👀", "🥶", "😈"];
-            try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: mek.key } }); } catch {}
-          }
-        }
 
         await messageHandler(sock, m);
       }
@@ -153,7 +149,6 @@ function attachHandlers(sock, phoneNumber) {
           const isGroup = chat.endsWith("@g.us");
           const sender = oldMsg.sender || update.key.participant || chat;
           const senderNumber = sender.split("@")[0].replace(/[^0-9]/g, "");
-          const privateName = oldMsg.pushName?.trim() || senderNumber;
           let chatName = "Private Chat";
           if (isGroup) { try { const gm = await sock.groupMetadata(chat); chatName = gm.subject; } catch {} }
           const now = new Date();
@@ -232,8 +227,6 @@ async function startBot(phoneNumber) {
       printQRInTerminal: false,
       auth: state,
       browser: ["Ubuntu", "Chrome", "20.0.04"],
-      msgRetryCounterCache,
-      userDevicesCache,
       generateHighQualityLinkPreview: false,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
@@ -269,7 +262,6 @@ async function startBot(phoneNumber) {
 
 global.startBot = startBot;
 
-// ================= API ENDPOINTS =================
 app.get("/api/stats", (req, res) => res.json({ connected: activeSockets.size, status: "online" }));
 app.get("/api/status", (req, res) => res.json({ connected: activeSockets.has(req.query.phoneNumber) }));
 
@@ -342,7 +334,7 @@ app.get("/api/settings", (req, res) => {
   if (fs.existsSync(settingsPath)) {
     try { return res.json(JSON.parse(fs.readFileSync(settingsPath, 'utf8'))); } catch(e) {}
   }
-  res.json({ autoread: false, autotyping: false, antidelete: false, antilink: false, autoreact: false, prefix: "." });
+  res.json({ autoread: false, autotyping: false, antidelete: false, antilink: false, autoreact: false, chreact: { enabled: false, emojis: ["💬"] }, prefix: "." });
 });
 
 app.post("/api/settings", (req, res) => {
@@ -353,7 +345,6 @@ app.post("/api/settings", (req, res) => {
   res.json({ success: true });
 });
 
-// ================= STARTUP =================
 (async () => {
   console.log("🚀 Starting Alpha Bot Server...");
   baileys = await import("@whiskeysockets/baileys");
@@ -378,7 +369,6 @@ app.post("/api/settings", (req, res) => {
     for (const dir of dirs) {
       if (/^\d{10,15}$/.test(dir)) {
         await startBot(dir);
-        // 🎯 Delay prevents WhatsApp from blocking connections on mass restart
         await new Promise(resolve => setTimeout(resolve, 3000)); 
       }
     }
