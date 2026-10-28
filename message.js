@@ -194,26 +194,40 @@ module.exports = async (sock, m) => {
         const reply = (text, extra={}) => { try { return sock.sendMessage(m.chat, { text, contextInfo, ...extra }, { quoted: m }); } catch { return sock.sendMessage(m.chat, { text, ...extra }, { quoted: m }); } };
         const send = (data) => { try { return sock.sendMessage(m.chat, { ...data, contextInfo }, { quoted: m }); } catch { return sock.sendMessage(m.chat, data, { quoted: m }); } };
 
+        // 🎯 AUTO FEATURES (Moved to the VERY TOP so it works on media too)
+        const gs = m.globalSettings || getGlobalSettings();
+        if (!m.key.fromMe) {
+            if (gs.autoread) { try { await sock.readMessages([m.key]); } catch {} }
+            if (gs.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
+            if (gs.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
+            
+            const prefix = m.prefix || config.prefix || ".";
+            const rawTxt = m.text || "";
+            
+            if (gs.autoreact && !rawTxt.startsWith(prefix)) {
+                const emojis = ["🔥", "😂", "😍", "😎", "🤖", "⚡", "💯", "👀", "🥶", "😈"];
+                try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: m.key } }); } catch {}
+            }
+        }
+
+        // Now check if it's a text message to continue
         if (!m.text) return;
 
-        const prefix = config.prefix || ".";
+        const prefix = m.prefix || config.prefix || ".";
         
-        // 🎯 RESTORED: AUTO FEATURES & MODERATION FOR NON-COMMANDS
         if (!m.text.startsWith(prefix)) {
             if (m.isGroup && m.text) {
-                const gs = getGroupSettings(m.chat);
+                const gsets = getGroupSettings(m.chat);
                 
-                // Auto Badword
                 if (containsBadWord(m.text, m.chat)) {
                     if (m.isBotAdmin) try { await sock.sendMessage(m.chat, { delete: m.key }); } catch {}
                     await sock.sendMessage(m.chat, { text: `🤬 Watch your language, @${m.sender.split('@')[0]}!`, mentions:[m.sender] }, { quoted: m });
                     return;
                 }
                 
-                // Auto Link
-                if (gs.antilink) {
-                    const mode = gs.antilinkMode || 'admins';
-                    const action = gs.antilinkAction || 'delete';
+                if (gsets.antilink) {
+                    const mode = gsets.antilinkMode || 'admins';
+                    const action = gsets.antilinkAction || 'delete';
                     let allowed = (mode === 'admins' && m.isAdmin) || (mode === 'owner' && m.isOwner);
                     
                     if (!allowed && containsLink(m.text)) {
@@ -229,16 +243,6 @@ module.exports = async (sock, m) => {
                     }
                 }
             }
-
-            // Auto-Read / Auto-Typing / Auto-Recording / Auto-React
-            const gs = getGlobalSettings();
-            if (gs.autoread) { try { await sock.readMessages([m.key]); } catch {} }
-            if (gs.autotyping) { try { await sock.sendPresenceUpdate("composing", m.chat); } catch {} }
-            if (gs.autorecording) { try { await sock.sendPresenceUpdate("recording", m.chat); } catch {} }
-            if (gs.autoreact) {
-                const emojis = ["🔥", "😂", "😍", "😎", "🤖", "⚡", "💯", "👀", "🥶", "😈"];
-                try { await sock.sendMessage(m.chat, { react: { text: emojis[Math.floor(Math.random() * emojis.length)], key: m.key } }); } catch {}
-            }
             return;
         }
 
@@ -248,12 +252,10 @@ module.exports = async (sock, m) => {
         const command = commands.find(c => c.command === cmdName || (c.aliases && c.aliases.includes(cmdName)));
         if (!command) return;
 
-        // ⭐ PERMANENT OWNER FIX
         const botNum = clean(sock.user.id.split('@')[0].split(':')[0]);
         const senderNum = clean(m.sender.split('@')[0].split(':')[0]);
         const isOwner = senderNum === botNum || config.owner.includes(senderNum) || isTempOwnerBase(m.sender);
 
-        // MODE CHECK
         if (cmdName !== 'mode' && getGlobalMode() === 'private' && !isOwner) return;
 
         await reactRandom(sock, m);
@@ -261,7 +263,6 @@ module.exports = async (sock, m) => {
         if (cmdName !== 'unbanuser' && cmdName !== 'unban' && isUserBanned(m.sender) && !isOwner)
             return reply(deny.banned);
 
-        // 🎯 CALCULATE ADMIN STATUS FOR ALL COMMANDS (Fixes 'staff' and passes accurate context)
         let isSenderAdmin = false;
         let isBotAdmin = false;
         
@@ -269,11 +270,10 @@ module.exports = async (sock, m) => {
             const adminStatus = await checkAdmin(sock, m.chat, m.sender, sock.user.id);
             isSenderAdmin = adminStatus.isSenderAdmin;
             isBotAdmin = adminStatus.isBotAdmin;
-            m.isAdmin = isSenderAdmin;     // Update m object for plugins
-            m.isBotAdmin = isBotAdmin;     // Update m object for plugins
+            m.isAdmin = isSenderAdmin;
+            m.isBotAdmin = isBotAdmin;
         }
 
-        // 🎯 EXACT ADMIN FLOW YOU REQUESTED
         if (command.admin) {
             if (!isBotAdmin) return reply(deny.botAdmin); 
             if (!isSenderAdmin && !isOwner) return reply(deny.admin); 
@@ -281,7 +281,6 @@ module.exports = async (sock, m) => {
 
         const ctx = { args, reply, send, isOwner, isGroup: m.isGroup, isAdmin: isSenderAdmin, isBotAdmin: isBotAdmin, config, prefix };
 
-        // ---- PERMISSION CHECKS ----
         if (command.owner && !isOwner) return reply(deny.owner);
         if (command.owner && isOwner && m.isGroup) await reply(deny.ownerPrivateReminder);
         if (command.group === false && m.isGroup) return reply(deny.private);
